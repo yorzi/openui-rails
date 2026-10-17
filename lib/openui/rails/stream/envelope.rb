@@ -21,6 +21,7 @@ module OpenUI
         ERROR_CODES = %w[
           stream_too_large
           stream_failed
+          stream_cancelled
           provider_rejected
           library_version_mismatch
           renderer_error
