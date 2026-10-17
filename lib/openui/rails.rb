@@ -13,4 +13,6 @@ module OpenUI
   end
 end
 
+require "openui/rails/errors"
+require "openui/rails/configuration"
 require "openui/rails/engine"
