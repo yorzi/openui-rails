@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/yorzi/openui-rails/blob/main/SECURITY.md
+    about: Please report security issues privately, not in a public issue.
+  - name: Upstream OpenUI runtime
+    url: https://github.com/thesysdev/openui
+    about: Bugs in the OpenUI runtime or the @openuidev/* packages belong to Thesys.

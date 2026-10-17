@@ -9,9 +9,10 @@ for every screen.
 
 > **Unofficial integration.** `openui-rails` is not affiliated with, endorsed
 > by, or maintained by Thesys. It reuses the official, version-pinned OpenUI
-> JavaScript runtime and keeps Rails authoritative for authentication,
-> authorization and persistence. It is not a Ruby reimplementation of OpenUI
-> Lang.
+> JavaScript runtime (loaded in the browser) and keeps Rails authoritative for
+> authentication, authorization and persistence. It is **not** a Ruby
+> reimplementation of OpenUI Lang — there is no Ruby parser or renderer in this
+> Gem.
 
 ## What it does
 
@@ -19,21 +20,32 @@ for every screen.
   renderer against a server-owned surface record.
 - **Versioned library/prompt contract** so the model prompt and the browser
   component library are generated from the *same* library revision, with a
-  fingerprint persisted alongside the response.
-- **Ordered streaming** envelope over Turbo Streams or Action Cable, with
-  snapshot recovery when chunks arrive out of order or a client reconnects.
+  SHA-256 fingerprint persisted alongside the response.
+- **Ordered streaming** envelopes with snapshot recovery when chunks arrive out
+  of order or a client reconnects. Transport-agnostic: broadcast over Turbo
+  Streams or Action Cable.
 - **A single, authorized action loop**: component `onAction` and browser
-  `toolProvider` `Query()` / `Mutation()` calls both route through one
-  allowlisted Rails endpoint with CSRF, tenancy and idempotency controls.
+  `toolProvider` `Query()`/`Mutation()` calls both route through one allowlisted
+  endpoint with CSRF, tenancy, staleness and idempotency controls. It fails
+  closed.
 - **Optional RubyLLM adapter** that owns RubyLLM-specific event normalization.
 
 RubyLLM is an optional integration, never a core dependency. Rails remains the
 source of truth for users, tenants and business objects.
 
-## Status
+## Requirements
 
-Early development. The public API is not frozen and may change between `0.x`
-releases. See [`CHANGELOG.md`](CHANGELOG.md).
+| Component | Supported |
+| --- | --- |
+| Ruby | `>= 3.2` |
+| Rails | `>= 8.0` (`< 9.0`) |
+| OpenUI browser runtime | pinned JS runtime, `@openuidev/browser-bundle` **0.2.1** |
+| OpenUI CLI (prompt generation) | pinned `@openuidev/cli` **0.6.0** |
+| RubyLLM | optional; adapter is exercised against a duck-typed double, no specific RubyLLM version is verified yet |
+
+Unknown provider/version combinations are *unsupported*, not implicitly
+compatible. The JavaScript runtime is always referenced by an exact version;
+there is no `@latest` or floating CDN range.
 
 ## Installation
 
@@ -47,47 +59,274 @@ bundle install
 bin/rails generate openui:install
 ```
 
-## Usage (sketch)
+The generator writes `config/initializers/openui.rb`, creates `config/openui/`
+and mounts the engine:
+
+```ruby
+# config/routes.rb
+mount OpenUI::Rails::Engine => "/openui-rails"
+```
+
+It intentionally does **not** download the runtime or generate the library
+prompt — those are explicit, reproducible steps (below).
+
+## Quickstart
+
+### 1. Configure
 
 ```ruby
 # config/initializers/openui.rb
 OpenUI::Rails.configure do |config|
-  config.transport = :turbo
+  config.transport = :turbo          # :turbo, :action_cable or :none
   config.library_spec_path = Rails.root.join("config/openui/library.spec.json")
-  config.runtime_assets = :self_hosted
+  config.prompt_path       = Rails.root.join("config/openui/library.prompt.txt")
+  config.runtime_assets    = :self_hosted   # :self_hosted or :external
+
+  # Authz is required and fails closed: with no authorizer an action is denied.
+  config.authorize_action = ->(invocation) { invocation.actor.present? }
+
+  # Resolve a surface id to a record scoped to the actor/tenant. Returning nil
+  # is treated as an unknown/inaccessible surface and denies the action.
+  config.surface_resolver = ->(surface_id, actor:, **) {
+    actor&.surfaces&.find_by(id: surface_id)
+  }
+
+  # Expose the actor to the actions endpoint (reads `current_user` by default).
+  config.actor_resolver = ->(controller) { controller.current_user }
 end
 ```
 
+### 2. Generate the library prompt and spec
+
+Use the **pinned** CLI, never `@latest`. The command writes the prompt and its
+`.spec.json` from one library revision so they cannot drift:
+
+```bash
+npx --yes @openuidev/cli@0.6.0 generate ./src/library.ts \
+  --out config/openui/library.prompt.txt --no-telemetry
+# rename the emitted library.prompt.txt.spec.json to library.spec.json
+# (or point library_spec_path at the generated name) and commit both.
+```
+
+Set `DO_NOT_TRACK=1` in CI as well as `--no-telemetry`.
+
+### 3. Self-host the pinned runtime
+
+```bash
+bin/rails openui:runtime:fetch   # vendors the bundle into public/openui (needs npm)
+```
+
+It prints an optional SRI pin you can set as `config.runtime_integrity`. With
+`runtime_assets = :external` you must supply an explicit, exact-version
+`runtime_url` instead.
+
+### 4. Register the Stimulus controller
+
+The engine adds its `app/javascript` directory to the asset paths, so the
+controller is importable as `openui/rails/openui_controller`:
+
+```js
+// app/javascript/controllers/index.js
+import { application } from "../application"
+import OpenUIController from "openui/rails/openui_controller"
+
+application.register("openui", OpenUIController)
+```
+
+### 5. Render a surface
+
 ```erb
+<%# @surface is any object exposing #id (and optionally #version,
+    #library_version, #response, #context, #message_id) %>
 <%= openui_surface(surface: @surface, stream: true) %>
 ```
 
+### 6. Register actions
+
 ```ruby
-# Optional RubyLLM adapter (not a hard dependency)
-OpenUI::Rails::Adapters::RubyLLM.stream(chat: chat, question: question, surface_id: surface.id)
+# config/initializers/openui.rb (or an initializer of your own)
+OpenUI::Rails.actions.register "orders.refresh",
+  description: "Re-fetch an order",
+  schema: { "orderId" => String },
+  authorize: ->(invocation) { OrderPolicy.new(invocation.actor, invocation.args["orderId"]).refresh? },
+  handler: ->(invocation) { OrderSerializer.new(Order.find(invocation.args["orderId"])).as_json }
 ```
 
-## Compatibility
+## Rendering surfaces
 
-| Component | Supported |
-| --- | --- |
-| Ruby | `>= 3.2` |
-| Rails | `>= 8.0` (< 9.0) |
-| OpenUI | pinned JS runtime (see `THIRD_PARTY_NOTICES.md`) |
+```ruby
+openui_surface(surface = nil, stream: false, dom_id: nil, initial_state: nil, **options)
+```
 
-The support matrix is verified by CI and refined as real matrix runs are
-recorded. Unknown provider/version combinations are *unsupported*, not
-implicitly compatible.
+`Surface.coerce` accepts a `Surface`, a plain `Hash`, or a host record. It
+emits a flat `data-openui-*` mount element; the Stimulus controller reads it and
+never receives a credential or a server secret. Recognised record methods:
+`id`, `version`, `library_version`, `response`, `context`, `message_id`.
+
+## Streaming
+
+The stream bridge normalizes model output into ordered envelopes and coalesces
+small chunks up to `pending_byte_limit` (default 32 KiB), enforcing
+`stream_byte_limit` (default 1 MiB).
+
+Envelope types: `openui.delta`, `openui.snapshot`, `openui.completed`,
+`openui.error`. Every envelope carries `message_id`, `sequence` (from `0`) and
+an optional `library_version`.
+
+```ruby
+bridge = OpenUI::Rails::Stream::Bridge.new(
+  message_id: surface.id, library_version: config.library_fingerprint
+)
+
+# Pull source (an Enumerable of chunks):
+bridge.envelopes(chunks).each { |envelope| broadcast(envelope) }
+
+# Push source (a streaming provider callback):
+writer = bridge.writer
+writer.push(chunk).each { |envelope| broadcast(envelope) }
+writer.finish.each { |envelope| broadcast(envelope) }
+```
+
+The browser controller applies envelopes in order, ignores duplicates, and
+requests a canonical snapshot (`openui:snapshot-required` event) when it detects
+a sequence gap, so a partial UI is never executed. It emits
+`openui:envelope`, `openui:action`, `openui:state` and `openui:error` events;
+the host decides how to persist form state.
+
+## The action loop
+
+Component `onAction` and browser `toolProvider` `Query()`/`Mutation()` calls
+post the same body to the single endpoint (`/openui-rails/actions` by default):
+
+```json
+{ "action": "orders.refresh", "args": {}, "surface_id": "…", "version": 3,
+  "idempotency_key": "…", "confirmed": false }
+```
+
+The `Actions::Dispatcher` applies every gate **before any side effect**, in
+order:
+
+1. submission parse/validate
+2. action is registered (allowlist — no reflection from a name to a method)
+3. args match the schema (required/optional types, extra keys rejected)
+4. explicit `confirmed: true` when the action is destructive
+5. surface revision is current (stale protection)
+6. authorizer allows it (required; fail closed)
+7. idempotency claim (duplicates never run twice, replay with different args is rejected)
+
+Structured errors (JSON `{ error: { code, message } }`):
+
+| Code | Status | Meaning |
+| --- | --- | --- |
+| `unknown_action` | 404 | not in the registry |
+| `unauthorized` | 403 | authorizer denied, no authorizer, or unresolvable surface |
+| `stale_surface` | 409 | submitted against a superseded revision |
+| `replay` | 409 | idempotency key reused |
+| `invalid_action` | 422 | malformed payload/args or missing confirmation |
+| `csrf_failed` | 422 | invalid authenticity token |
+
+## Message protocol
+
+`OpenUI::Rails::Message` implements the upstream `buildMessage`/`parseMessage`
+framing (marker lines beginning with `]]>openui:`). Use it to store a response
+so the browser `Renderer` can read both content and context, and to strip the
+markers before a stored message is sent back to a model:
+
+```ruby
+stored = OpenUI::Rails::Message.build(content: lang, context: { form: form_state }, finished: true)
+OpenUI::Rails::Message.strip(stored)        # => model-safe content, no markers
+OpenUI::Rails::Message.parse(stored).context
+```
+
+This is *message framing*, not an OpenUI Lang parser. Client-supplied context is
+untrusted input.
+
+## RubyLLM adapter
+
+Optional and never required. It owns RubyLLM event normalization and delegates
+sequencing/limits to the stream bridge, so a host keeps RubyLLM's own Rails
+streaming pattern:
+
+```ruby
+OpenUI::Rails::Adapters::RubyLLM.stream(
+  chat: chat, question: question, surface_id: surface.id
+) { |envelope| broadcast(envelope) }
+```
+
+`ruby_llm` is isolated under `OpenUI::Rails::Adapters`; failures are classified
+by class *name*, so no `RubyLLM` constant is referenced at load time.
+
+## Assets and CSP
+
+- The runtime is version-pinned and served from your app (or an exact-version
+  URL you configure). Self-hosting is the default.
+- You may pin subresource integrity via `config.runtime_integrity`; the fetch
+  task prints the digest to use.
+- To use a strict Content Security Policy, add a nonce/host for the runtime
+  script you serve. The Gem does not inject inline scripts or styles.
+
+## Security model
+
+Model output is untrusted UI DSL. The controls this Gem is responsible for:
+
+- **Allowlist only** — the browser can resolve only components and actions the
+  pinned library declares, and only actions registered in the Rails registry.
+- **One action path** — every write passes all seven gates above; no
+  model-provided name maps to Ruby reflection.
+- **Fail closed** — no authorizer means denied.
+- **Rails-owned identity** — CSRF protection, session auth and per-surface
+  version all come from Rails; surface ids are resolved scoped to actor/tenant.
+- **Untrusted context** — client form state is never treated as a write
+  confirmation, and `]]>openui:` markers are stripped before model history.
+- **Pinned supply chain** — exact runtime/CLI versions, optional integrity,
+  no production mutable CDN.
+
+Report vulnerabilities privately per [`SECURITY.md`](SECURITY.md).
+
+## Versioning and rollback
+
+- `0.x` releases allow documented breaking changes with migration notes; the
+  Ruby API is not frozen. See [`CHANGELOG.md`](CHANGELOG.md).
+- The JS runtime is version-locked, and a response is stored with its
+  prompt/library fingerprint, so a mismatched fingerprint is a **visible
+  failure** rather than rendering old source against a new schema.
+- Downgrading the Gem is the supported rollback; persisted snapshots are
+  readable by previous versions where the schema is compatible, otherwise they
+  degrade to a safe read-only/fallback with a diagnostic.
+
+## Status
+
+Early development. The public API may change between `0.x` releases.
+
+Test status (honest, at `0.1.0`):
+
+- **Unit + integration** (Minitest, dummy Rails app): `158 runs, 388
+  assertions, 0 failures` via `bundle exec bin/rails test`.
+- **Not yet covered:** browser end-to-end tests (Playwright — stream ordering,
+  duplicate-mount, Turbo lifecycle), a real RubyLLM version, and a real provider
+  smoke run. `openui:runtime:fetch` requires npm and is not exercised in CI.
+
+## Development
+
+```bash
+bundle install
+bundle exec bin/rails test        # unit + integration
+bundle exec rubocop               # rubocop-rails-omakase
+bundle exec gem build openui-rails.gemspec
+```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Documentation
 
 - [`CHANGELOG.md`](CHANGELOG.md)
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 - [`SECURITY.md`](SECURITY.md)
 
 ## License
 
 Released under the [MIT License](LICENSE). OpenUI and the `@openuidev/*`
-packages are MIT-licensed by Thesys; their notices ship in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+packages are MIT-licensed by Thesys ("Copyright (c) 2011-2024 Thesys Inc.");
+their notices ship in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
