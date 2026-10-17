@@ -88,6 +88,23 @@ module OpenUI
         assert_raises(ConfigurationError) { OpenUI::Rails.configuration.validate! }
       end
 
+      test "provides a process-wide default idempotency store" do
+        store = OpenUI::Rails.configuration.idempotency_store
+
+        assert_instance_of Actions::Idempotency::MemoryStore, store
+        assert_same store, OpenUI::Rails.configuration.idempotency_store
+      end
+
+      test "reset! preserves the action registry and idempotency store" do
+        OpenUI::Rails.actions.register("keep.me") { |_invocation| nil }
+        store = OpenUI::Rails.configuration.idempotency_store
+
+        OpenUI::Rails.configuration.reset!
+
+        assert OpenUI::Rails.actions.registered?("keep.me")
+        assert_same store, OpenUI::Rails.configuration.idempotency_store
+      end
+
       test "reset_configuration! drops all state" do
         OpenUI::Rails.configure { |c| c.transport = :action_cable }
         OpenUI::Rails.reset_configuration!

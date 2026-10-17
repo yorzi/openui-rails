@@ -18,11 +18,11 @@ module OpenUI
       DEFAULT_IDEMPOTENCY_TTL = 15 * 60     # seconds
       DEFAULT_ACTIONS_ENDPOINT = "/openui-rails/actions"
 
-      attr_reader :transport, :runtime_assets, :idempotency_store
+      attr_reader :transport, :runtime_assets
       attr_accessor :library_spec_path, :prompt_path, :library_name,
                     :actions_endpoint, :surface_id_param,
                     :stream_byte_limit, :pending_byte_limit, :idempotency_ttl,
-                    :authorize_action, :on_error, :action_registry, :surface_resolver
+                    :authorize_action, :on_error, :action_registry, :surface_resolver, :actor_resolver
 
       def initialize
         @transport = :turbo
@@ -40,6 +40,7 @@ module OpenUI
         @on_error = nil
         @action_registry = nil
         @surface_resolver = nil
+        @actor_resolver = nil
       end
 
       def transport=(value)
@@ -85,6 +86,18 @@ module OpenUI
         @surface_resolver = callable
       end
 
+      def actor_resolver=(callable)
+        unless callable.nil? || callable.respond_to?(:call)
+          raise ConfigurationError, "actor_resolver must respond to #call"
+        end
+
+        @actor_resolver = callable
+      end
+
+      def idempotency_store
+        @idempotency_store ||= Actions::Idempotency::MemoryStore.new
+      end
+
       # The registry of callable actions. Lazily created so require order does
       # not matter and host apps can replace it if they wish.
       def action_registry
@@ -107,9 +120,10 @@ module OpenUI
       end
 
       # Drop memoized derived state (used after config changes and in tests).
+      # The action registry and idempotency store are runtime state and are
+      # preserved so re-configuring does not silently unregister actions.
       def reset!
         remove_instance_variable(:@library_manifest) if defined?(@library_manifest)
-        @action_registry = nil
         self
       end
 

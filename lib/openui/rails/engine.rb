@@ -1,5 +1,14 @@
 # frozen_string_literal: true
 
+require "active_support/inflector"
+
+# Register the acronym before the engine class is defined: `isolate_namespace`
+# computes the routing module scope with `underscore` at class-definition time,
+# so it must already know that `OpenUI` is `openui` (not `open_ui`).
+ActiveSupport::Inflector.inflections(:en) do |inflect|
+  inflect.acronym "OpenUI"
+end
+
 module OpenUI
   module Rails
     class Engine < ::Rails::Engine
@@ -14,6 +23,13 @@ module OpenUI
       # cannot be resolved.
       initializer "openui_rails.inflections", before: :setup_main_autoloader do
         ::Rails.autoloaders.main.inflector.inflect("openui" => "OpenUI")
+      end
+
+      # Expose the surface helper to every host view.
+      initializer "openui_rails.view_helper" do
+        ActiveSupport.on_load(:action_view) do
+          include OpenUI::Rails::ViewHelper
+        end
       end
     end
   end
