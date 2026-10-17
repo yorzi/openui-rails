@@ -14,5 +14,6 @@ module OpenUI
 end
 
 require "openui/rails/errors"
+require "openui/rails/library_manifest"
 require "openui/rails/configuration"
 require "openui/rails/engine"
