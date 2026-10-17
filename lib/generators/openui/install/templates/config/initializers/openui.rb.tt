@@ -1,0 +1,30 @@
+# frozen_string_literal: true
+
+OpenUI::Rails.configure do |config|
+  # Transport for incremental updates: :turbo, :action_cable or :none.
+  config.transport = :turbo
+
+  # The prompt and spec generated from the same, pinned library revision by the
+  # OpenUI CLI. See config/openui/README.md for the exact command.
+  config.library_spec_path = Rails.root.join("config/openui/library.spec.json")
+  config.prompt_path = Rails.root.join("config/openui/library.prompt.txt")
+
+  # :self_hosted (default) serves a vendored runtime; :external requires an
+  # explicit, exact-version runtime_url. See `bin/rails openui:runtime:fetch`.
+  config.runtime_assets = :self_hosted
+  # config.runtime_integrity = "sha384-..."
+
+  # Authorize every action/tool call. This fails closed: with no authorizer an
+  # action is denied. Return truthy to permit.
+  # config.authorize_action = ->(invocation) do
+  #   OrderPolicy.new(invocation.actor, invocation.args["orderId"]).refresh?
+  # end
+
+  # Resolve a surface id to a record scoped to the actor/tenant. Returning nil
+  # is treated as "unknown or inaccessible surface" and denies the action.
+  # config.surface_resolver = ->(surface_id, actor:, **) { actor&.surfaces&.find_by(id: surface_id) }
+
+  # Expose the current actor to the actions endpoint. Defaults to `current_user`
+  # when the controller responds to it.
+  # config.actor_resolver = ->(controller) { controller.current_user }
+end
