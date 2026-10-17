@@ -9,7 +9,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     env:
-      RUBY_VERSION: ruby-3.3.5
+      RUBY_VERSION: ruby-3.3
       RUBOCOP_CACHE_ROOT: tmp/rubocop
     steps:
       - name: Checkout code
@@ -36,13 +36,14 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-
-    # services:
-    #  redis:
-    #    image: valkey/valkey:8
-    #    ports:
-    #      - 6379:6379
-    #    options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [ "3.2", "3.3", "3.4" ]
+        rails: [ "8.0", "8.1" ]
+    env:
+      RAILS_ENV: test
+      RAILS_VERSION: ${{ matrix.rails }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -50,20 +51,51 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ruby-3.3.5
+          ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
 
       - name: Run tests
-        env:
-          RAILS_ENV: test
-          # RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
-          # REDIS_URL: redis://localhost:6379/0
         run: bin/rails db:test:prepare test
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: screenshots
+          name: screenshots-ruby${{ matrix.ruby }}-rails${{ matrix.rails }}
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
+
+  build:
+    runs-on: ubuntu-latest
+    env:
+      RUBY_VERSION: ruby-3.3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Build the gem
+        run: gem build openui-rails.gemspec
+
+      - name: Verify the packaged file list
+        run: |
+          gem spec openui-rails-*.gem files --yaml > packaged_files.txt
+          for expected in \
+            lib/openui/rails.rb \
+            lib/openui/rails/engine.rb \
+            app/controllers/openui/rails/actions_controller.rb \
+            app/javascript/openui/rails/openui_controller.js \
+            LICENSE README.md CHANGELOG.md THIRD_PARTY_NOTICES.md; do
+            grep -qxF -- "- $expected" packaged_files.txt \
+              || { echo "missing from gem: $expected"; exit 1; }
+          done
+
+      - name: Install and require the built gem
+        run: |
+          gem install ./openui-rails-*.gem --no-document
+          ruby -e 'require "rails"; require "openui/rails"; puts "openui-rails #{OpenUI::Rails::VERSION}"'
