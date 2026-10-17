@@ -66,12 +66,18 @@ module OpenUI
       # The flat `data:` hash for the Stimulus mount element. Keys use
       # underscores so Rails renders them as `data-openui-*` attributes; nil
       # values are omitted so the controller can rely on presence.
+      #
+      # Every value is deliberately a String. DOM data attributes are strings,
+      # and Rails only JSON-coerces *non-String* values — a path that broke on
+      # Rails 8.0 with json >= 3.1 (ActiveSupport passes a `quirks_mode:`
+      # keyword the gem removed). Emitting strings keeps rendering independent
+      # of ActiveSupport's JSON encoder.
       def to_mount_data(stream: false, actions_endpoint:, initial_state: nil)
         {
           controller: "openui",
           openui_surface_id: id,
           openui_message_id: message_id,
-          openui_version: version,
+          openui_version: version.to_s,
           openui_library_version: library_version,
           openui_streaming: (streaming? || stream) ? "true" : "false",
           openui_actions_url: actions_endpoint,

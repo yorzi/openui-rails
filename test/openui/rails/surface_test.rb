@@ -14,7 +14,9 @@ module OpenUI
 
         assert_equal "openui", data[:controller]
         assert_equal "s1", data[:openui_surface_id]
-        assert_equal 3, data[:openui_version]
+        # Values are Strings so Rails never JSON-coerces them (see
+        # Surface#to_mount_data). The browser parses the version with Number().
+        assert_equal "3", data[:openui_version]
         assert_equal "sha256:x", data[:openui_library_version]
         assert_equal "false", data[:openui_streaming]
         assert_equal "root = Card()", data[:openui_response]
