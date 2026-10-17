@@ -22,7 +22,7 @@ module OpenUI
       attr_accessor :library_spec_path, :prompt_path, :library_name,
                     :actions_endpoint, :surface_id_param,
                     :stream_byte_limit, :pending_byte_limit, :idempotency_ttl,
-                    :authorize_action, :on_error, :action_registry
+                    :authorize_action, :on_error, :action_registry, :surface_resolver
 
       def initialize
         @transport = :turbo
@@ -39,6 +39,7 @@ module OpenUI
         @authorize_action = nil
         @on_error = nil
         @action_registry = nil
+        @surface_resolver = nil
       end
 
       def transport=(value)
@@ -66,6 +67,22 @@ module OpenUI
         end
 
         @idempotency_store = store
+      end
+
+      def authorize_action=(callable)
+        unless callable.nil? || callable.respond_to?(:call)
+          raise ConfigurationError, "authorize_action must respond to #call"
+        end
+
+        @authorize_action = callable
+      end
+
+      def surface_resolver=(callable)
+        unless callable.nil? || callable.respond_to?(:call)
+          raise ConfigurationError, "surface_resolver must respond to #call"
+        end
+
+        @surface_resolver = callable
       end
 
       # The registry of callable actions. Lazily created so require order does

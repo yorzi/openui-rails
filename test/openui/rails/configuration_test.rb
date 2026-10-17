@@ -61,6 +61,18 @@ module OpenUI
         end
       end
 
+      test "validates the authorizer and surface resolver are callable" do
+        assert_raises(ConfigurationError) { OpenUI::Rails.configure { |c| c.authorize_action = :nope } }
+        assert_raises(ConfigurationError) { OpenUI::Rails.configure { |c| c.surface_resolver = "nope" } }
+
+        OpenUI::Rails.configure do |c|
+          c.authorize_action = ->(_invocation) { true }
+          c.surface_resolver = ->(_id, **) { nil }
+        end
+
+        assert_respond_to OpenUI::Rails.configuration.authorize_action, :call
+      end
+
       test "validate! fails fast when the library spec is missing" do
         error = assert_raises(ConfigurationError) { OpenUI::Rails.configuration.validate! }
         assert_match(/library_spec_path/, error.message)
