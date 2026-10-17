@@ -16,5 +16,6 @@ end
 require "openui/rails/errors"
 require "openui/rails/library_manifest"
 require "openui/rails/prompt_builder"
+require "openui/rails/message"
 require "openui/rails/configuration"
 require "openui/rails/engine"
