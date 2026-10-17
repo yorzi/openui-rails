@@ -1,0 +1,25 @@
+/.bundle/
+/Gemfile.lock
+/log/
+/tmp/
+/pkg/
+/node_modules/
+
+# Dummy app runtime state
+/test/dummy/log/
+/test/dummy/tmp/
+/test/dummy/storage/
+/test/dummy/db/*.sqlite3
+/test/dummy/db/*.sqlite3-*
+
+# Build output
+*.gem
+*.rbc
+
+# Generated OpenUI prompt/spec artifacts used by tests and the dummy app
+/test/dummy/config/openui/*.json
+/test/dummy/config/openui/*.txt
+
+.DS_Store
+.DS_Store?
+*.swp
