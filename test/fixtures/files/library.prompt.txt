@@ -1,0 +1,5 @@
+# Support library
+
+Available components: Card, Table, Chart.
+Available actions: refresh.
+Use Table for tabular data and Chart for numeric series.

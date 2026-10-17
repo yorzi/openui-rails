@@ -2,6 +2,7 @@
 
 require "json"
 require "digest"
+require "pathname"
 
 module OpenUI
   module Rails
