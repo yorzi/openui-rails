@@ -23,7 +23,6 @@ Gem::Specification.new do |spec|
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 
-  spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
@@ -34,9 +33,5 @@ Gem::Specification.new do |spec|
   end
   spec.require_paths = [ "lib" ]
 
-  spec.add_dependency "rails", ">= 8.0"
-
-  spec.add_development_dependency "propshaft"
-  spec.add_development_dependency "puma"
-  spec.add_development_dependency "sqlite3"
+  spec.add_dependency "rails", ">= 8.0", "< 9.0"
 end
