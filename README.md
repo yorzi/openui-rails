@@ -47,6 +47,11 @@ Unknown provider/version combinations are *unsupported*, not implicitly
 compatible. The JavaScript runtime is always referenced by an exact version;
 there is no `@latest` or floating CDN range.
 
+> **Rails 8.0 note.** On the Rails 8.0.x line, use `json < 3`. Rails 8.0's
+> ActiveSupport and integration-test helpers pass a `quirks_mode:` keyword to
+> `JSON.generate` that `json` 3.1 removed; Rails 8.1 no longer does. CI covers
+> both lines (`RAILS_VERSION` in the `Gemfile` pins the matrix).
+
 ## Installation
 
 ```ruby

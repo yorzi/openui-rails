@@ -7,6 +7,11 @@ gemspec
 rails_version = ENV["RAILS_VERSION"]
 gem "rails", "~> #{rails_version}.0" if rails_version
 
+# Rails 8.0.x passes `quirks_mode:` to JSON.generate (in ActiveSupport and in
+# the integration-test helper), a keyword json >= 3 removed. Rails 8.1 dropped
+# it. Constrain json for the 8.0 matrix; see the README compatibility note.
+gem "json", "< 3" if rails_version&.start_with?("8.0")
+
 gem "puma"
 
 gem "sqlite3"
