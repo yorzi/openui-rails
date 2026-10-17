@@ -18,6 +18,13 @@ module OpenUI
         assert_includes html, 'id="openui-surface-s1"'
       end
 
+      test "renders the pinned runtime attributes" do
+        html = openui_surface(id: "s1", version: 1)
+
+        assert_includes html, 'data-openui-runtime-url="/openui/openui-browser-bundle-0.2.1.js"'
+        assert_includes html, 'data-openui-runtime-version="0.2.1"'
+      end
+
       test "escapes values that could break out of the attribute" do
         html = openui_surface(id: "s1", response: %q{root = TextContent("</div><script>alert(1)</script>")})
 

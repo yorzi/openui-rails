@@ -20,7 +20,7 @@ module OpenUI
           stream: stream,
           actions_endpoint: OpenUI::Rails.configuration.actions_endpoint,
           initial_state: initial_state
-        )
+        ).merge(RuntimeAsset.mount_data)
 
         tag.div(
           "",

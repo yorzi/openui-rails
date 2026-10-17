@@ -22,7 +22,8 @@ module OpenUI
       attr_accessor :library_spec_path, :prompt_path, :library_name,
                     :actions_endpoint, :surface_id_param,
                     :stream_byte_limit, :pending_byte_limit, :idempotency_ttl,
-                    :authorize_action, :on_error, :action_registry, :surface_resolver, :actor_resolver
+                    :authorize_action, :on_error, :action_registry, :surface_resolver, :actor_resolver,
+                    :runtime_version, :runtime_url, :runtime_integrity, :local_runtime_path
 
       def initialize
         @transport = :turbo
@@ -41,6 +42,10 @@ module OpenUI
         @action_registry = nil
         @surface_resolver = nil
         @actor_resolver = nil
+        @runtime_version = nil
+        @runtime_url = nil
+        @runtime_integrity = nil
+        @local_runtime_path = "/openui"
       end
 
       def transport=(value)
@@ -131,6 +136,10 @@ module OpenUI
       # the app serves requests so misconfiguration fails fast and visibly.
       def validate!
         raise ConfigurationError, "library_spec_path is not configured" if library_spec_path.nil?
+
+        if runtime_assets == :external && (runtime_url.nil? || runtime_url.empty?)
+          raise ConfigurationError, "runtime_assets :external requires an explicit, version-pinned runtime_url"
+        end
 
         if pending_byte_limit <= 0 || stream_byte_limit <= 0
           raise ConfigurationError, "stream byte limits must be positive"

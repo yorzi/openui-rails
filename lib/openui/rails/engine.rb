@@ -31,6 +31,14 @@ module OpenUI
           include OpenUI::Rails::ViewHelper
         end
       end
+
+      # Make the Stimulus controller reachable by Propshaft/Sprockets/importmap.
+      initializer "openui_rails.assets" do |app|
+        next unless app.config.respond_to?(:assets)
+
+        assets = app.config.assets
+        assets.paths << root.join("app/javascript") if assets.respond_to?(:paths)
+      end
     end
   end
 end
