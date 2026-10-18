@@ -22,9 +22,18 @@ module OpenUI
             @chunks = chunks
           end
 
-          def complete(question = nil)
-            @question = question
+          def add_message(message)
+            @question = message.fetch(:content)
+            self
+          end
+
+          def complete
             @chunks.each { |chunk| yield chunk }
+          end
+
+          def ask(question)
+            add_message(content: question)
+            complete { |chunk| yield chunk }
           end
 
           def with_instructions(text)
@@ -42,6 +51,8 @@ module OpenUI
             yield Chunk.new("partial")
             raise @error
           end
+
+          def add_message(*) = self
         end
 
         setup do
@@ -97,6 +108,18 @@ module OpenUI
           envelopes = collect(chat)
 
           assert_equal [ "ab" ], envelopes.select(&:delta?).map(&:delta)
+        end
+
+        test "supports the ask strategy and propagates transport failures" do
+          chat = FakeChat.new([ "hello" ])
+          assert collect(chat, strategy: :ask).last.completed?
+          assert_equal "Draw a chart", chat.question
+
+          assert_raises(IOError) do
+            OpenUI::Rails::Adapters::RubyLLM.stream(
+              chat: FakeChat.new([ "hello" ]), question: "x", surface_id: "s"
+            ) { raise IOError, "transport down" }
+          end
         end
 
         test "an explicit instruction and message id override the defaults" do

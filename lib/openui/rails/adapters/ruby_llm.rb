@@ -46,15 +46,27 @@ module OpenUI
             ).writer
 
             begin
+              consumer_failed = false
+              deliver = lambda do |envelope|
+                begin
+                  block.call(envelope)
+                rescue StandardError
+                  consumer_failed = true
+                  raise
+                end
+              end
               consume(chat, question, strategy) do |chunk|
                 text = normalize_chunk(chunk)
                 next if text.nil?
 
-                writer.push(text).each(&block)
+                writer.push(text).each(&deliver)
               end
-              writer.finish.each(&block)
+              writer.finish.each(&deliver)
             rescue StandardError => e
-              block.call(writer.error_for(e, code: error_code_for(e)))
+              raise if consumer_failed
+
+              envelope = writer.error_for(e, code: error_code_for(e))
+              block.call(envelope) if envelope
             end
 
             writer
@@ -71,7 +83,10 @@ module OpenUI
           def consume(chat, question, strategy, &block)
             case strategy
             when :complete
-              question.nil? ? chat.complete(&block) : chat.complete(question, &block)
+              # RubyLLM::Chat#complete only accepts a block. A user message is
+              # added explicitly; #ask is the convenient alternative strategy.
+              chat.add_message(role: :user, content: question) unless question.nil?
+              chat.complete(&block)
             when :ask then chat.ask(question, &block)
             end
           end
