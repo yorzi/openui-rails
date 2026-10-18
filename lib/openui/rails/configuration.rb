@@ -168,6 +168,9 @@ module OpenUI
           raise ConfigurationError, "idempotency_ttl must be positive"
         end
 
+        reset!
+        library_manifest
+        PromptBuilder.load(self) if prompt_path
         true
       end
     end

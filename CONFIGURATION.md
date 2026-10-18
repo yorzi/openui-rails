@@ -31,7 +31,8 @@ authorization, stream subscriptions, persistence, and snapshot recovery.
 select a runtime library or change the endpoint's `surface_id` wire key.
 
 After you create the library files, call
-`OpenUI::Rails.configuration.validate!` to check required configuration.
+`OpenUI::Rails.configuration.validate!` to check required configuration and
+read the actual manifest and configured prompt files.
 Boot does not call it automatically, so setup tasks can run before files exist.
 
 ## Shared idempotency store

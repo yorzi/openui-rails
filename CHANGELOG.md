@@ -16,6 +16,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   instead of reporting a false success.
 - Canonicalize and copy JSON input before validation/fingerprinting; prevent
   mutable submissions, envelopes, surfaces, and manifests.
+- Make explicit configuration readiness validation read the actual manifest
+  and prompt files instead of accepting filenames alone.
 - Enforce stream terminal states, completion ordering, snapshot watermarks,
   browser byte limits, and Turbo cache restoration.
 - Use the real OpenUI `{type, params}` action contract, avoid false MCP-client

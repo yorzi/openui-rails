@@ -27,13 +27,14 @@ bugs, and the human publication gates remain open.
 | RubyLLM | `Chat#complete(question)` does not exist in RubyLLM 2.1.1. | Add the user message, then call block-only complete; verify both strategies through real provider SSE parsing with mocked HTTP. |
 | Message framing | CRLF, malformed markers, post-end text, and multi-line raw context differed from lang-core. | Align framing with pinned lang-core 1.0.1 and extend regression cases. No Ruby DSL parser added. |
 | Packaging | Standalone require needed Rails preloaded; previous smoke checks only installed the gem. | Explicit framework loading; a fresh host uses the extracted built artifact, generator, eager load, and an HTTP render. |
+| Configuration readiness | A configured filename could pass validation without an actual valid manifest or prompt file. | Explicit readiness validation reads the files and clears stale derived state. Missing-file regression tests. |
 | Release workflow | A tag could publish without running tests; the supposed draft was public; environment protection was only a comment. | Reusable full CI gate, explicit manual publish, artifact handoff, real draft flag, and documented reviewer setup. |
 
 ## Verification evidence
 
 Local environment: Ruby 3.3.5, Rails 8.1.4, Chrome through Selenium.
 
-- Unit/integration: `208 runs, 539 assertions`, no failures or errors.
+- Unit/integration: `209 runs, 542 assertions`, no failures or errors.
 - Deterministic browser suite: `32 runs, 104 assertions`, no failures or errors.
 - Real `@openuidev/browser-bundle` 0.2.1: `5 runs, 30 assertions`, no failures or errors.
   Includes matching runtime/spec identity, rendering, keyboard action, Query,

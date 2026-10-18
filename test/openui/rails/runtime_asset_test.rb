@@ -47,7 +47,7 @@ module OpenUI
       test "external assets require an explicit pinned url" do
         OpenUI::Rails.configure do |config|
           config.runtime_assets = :external
-          config.library_spec_path = "/tmp/library.spec.json"
+          config.library_spec_path = file_fixture("library.spec.json")
         end
 
         assert_raises(ConfigurationError) { OpenUI::Rails.configuration.validate! }

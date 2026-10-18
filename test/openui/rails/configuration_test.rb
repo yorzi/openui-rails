@@ -89,6 +89,19 @@ module OpenUI
         assert_raises(ConfigurationError) { OpenUI::Rails.configuration.validate! }
       end
 
+      test "readiness validates actual manifest and prompt files" do
+        config = OpenUI::Rails.configuration
+        config.library_spec_path = file_fixture("library.spec.json")
+        config.prompt_path = file_fixture("library.prompt.txt")
+        assert config.validate!
+
+        config.prompt_path = file_fixture("library.prompt.txt").dirname.join("missing-prompt.txt")
+        assert_raises(ManifestError) { config.validate! }
+        config.prompt_path = nil
+        config.library_spec_path = file_fixture("library.spec.json").dirname.join("missing-library.json")
+        assert_raises(ManifestError) { config.validate! }
+      end
+
       test "provides a process-wide default idempotency store" do
         store = OpenUI::Rails.configuration.idempotency_store
 
