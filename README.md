@@ -423,7 +423,8 @@ Report vulnerabilities privately per [`SECURITY.md`](SECURITY.md).
 
 ## Status
 
-Early development. The public API may change between `0.x` releases.
+Version `0.1.0` was published on 2026-10-18. The public API may change between
+`0.x` releases.
 
 The audit fixed defects that the original stub-only tests missed. See
 [AUDIT.md](AUDIT.md) for findings, verification evidence, and publication gates.

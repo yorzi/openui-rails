@@ -12,9 +12,9 @@ administrator bypass. Self-review is available for the single maintainer.
 RubyGems trusts workflow `release.yml` and environment `release` through GitHub
 OIDC. No long-lived RubyGems API key is stored in GitHub.
 
-The initial pending publisher was registered on 2026-10-18. Pending publishers
-expire if unused; check the RubyGems settings before a delayed first publish.
-The first successful publication creates the gem and activates its publisher.
+The initial pending publisher was registered and successfully used for `0.1.0`
+on 2026-10-18. Future releases use the gem's Trusted Publisher. Update RubyGems
+trust before changing the repository, workflow filename, or environment.
 
 Before each release, review [AUDIT.md](AUDIT.md), the dated changelog section,
 and the complete CI result for the exact commit. Preserve third-party notices.

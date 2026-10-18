@@ -4,9 +4,28 @@
 
 The audit found real defects despite the original green test suite. The fixes
 below have regression coverage. The owner authorized publication of `0.1.0`
-on 2026-10-18. Publication still requires the selected tag's complete CI to
-pass and the protected publishing workflow to succeed. This audit establishes
+on 2026-10-18. The exact tag's complete CI and protected publishing workflow
+passed, and `0.1.0` is published on RubyGems and GitHub. This audit establishes
 the specific behaviors below, not the absence of all bugs.
+
+## Publication evidence
+
+- Release tag `v0.1.0` points to commit
+  `e2203c0e0f573f1b8206d9abdac4ab8f838594b8`.
+- [Publishing run 39115168826](https://github.com/yorzi/openui-rails/actions/runs/39115168826)
+  passed the complete reusable CI suite, package checks, protected environment
+  approval, RubyGems upload, and GitHub release draft creation.
+- [RubyGems 0.1.0](https://rubygems.org/gems/openui-rails/versions/0.1.0) and
+  [GitHub Release v0.1.0](https://github.com/yorzi/openui-rails/releases/tag/v0.1.0)
+  expose the same artifact. SHA-256:
+  `275c124a9e8e9c82b471357e3f314e4c86d6255c8fc9ef0313be858525bffee5`.
+  The actual RubyGems download, GitHub asset, API digest, and `SHA256SUMS` match.
+- The downloaded RubyGems artifact passed the fresh Rails host probe: install
+  generator, eager load, and HTTP rendering.
+- [Documentation](https://openui-rails.wangyaodi.com/) uses GitHub Pages with
+  Actions. Cloudflare has a DNS-only CNAME to `yorzi.github.io`. GitHub verified
+  domain ownership through a TXT record and issued the certificate. HTTPS is
+  enforced. The release docs build checks stable and `/next/` channels.
 
 ## Confirmed defects corrected
 
@@ -71,8 +90,9 @@ complete accessibility, legal clearance, or an absence of future vulnerabilities
   `release`.
 - The repository is public. Security reports go to the address in `SECURITY.md`;
   public support uses GitHub Issues.
-- RubyGems has a pending Trusted Publisher for the exact workflow and
-  environment. The first successful publication activates the gem's publisher.
+- RubyGems Trusted Publishing for the exact workflow and environment was
+  successfully used for the first release. The public version page identifies
+  the GitHub Actions repository, workflow, and environment as its publisher.
 - The GitHub `release` environment requires approval by `yorzi`, allows the
   `main` branch only, and disallows administrator bypass. Self-review remains
   available for the single maintainer.
