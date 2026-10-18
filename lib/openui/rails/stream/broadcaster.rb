@@ -1,0 +1,82 @@
+# frozen_string_literal: true
+
+module OpenUI
+  module Rails
+    module Stream
+      # Binds the ordered {Bridge} to a transport and broadcasts every envelope
+      # as it is produced.
+      #
+      # The transport is a seam: any object that responds to
+      # `#broadcast(envelope)` works, and {Transports} ships wrappers for Action
+      # Cable, Turbo Streams and an in-memory collector. Delivery is best effort
+      # — neither Action Cable nor Turbo Streams promise order or delivery —
+      # which is why the client applies sequence numbers and recovers from an
+      # authoritative snapshot on a gap (see the Stimulus controller).
+      #
+      #   broadcaster = Broadcaster.new(
+      #     transport: Transports::ActionCable.new("openui:surface:42"),
+      #     message_id: "msg-1",
+      #     library_version: OpenUI::Rails.configuration.library_fingerprint
+      #   )
+      #   chat.complete { |chunk| broadcaster.push(chunk.content) }
+      #   broadcaster.finish
+      class Broadcaster
+        attr_reader :transport, :message_id, :library_version
+
+        # Broadcast every envelope produced by an enumerable source of chunks.
+        #
+        # @param source [#each] yields String chunks
+        # @return [Broadcaster]
+        def self.broadcast(source, **options)
+          broadcaster = new(**options)
+          source.each { |chunk| broadcaster.push(chunk) }
+          broadcaster.finish
+        end
+
+        def initialize(transport:, message_id:, library_version: nil, configuration: OpenUI::Rails.configuration)
+          raise ConfigurationError, "a transport is required" if transport.nil?
+          unless transport.respond_to?(:broadcast)
+            raise ConfigurationError, "transport must respond to #broadcast"
+          end
+
+          @transport = transport
+          @message_id = message_id
+          @library_version = library_version
+          @configuration = configuration
+          @writer = Bridge.new(
+            message_id: message_id,
+            library_version: library_version,
+            configuration: configuration
+          ).writer
+        end
+
+        # Push a chunk; broadcasts any envelopes the writer flushes.
+        # @return [self]
+        def push(chunk)
+          @writer.push(chunk).each { |envelope| @transport.broadcast(envelope) }
+          self
+        end
+
+        # Broadcast the final delta (if any) and the completion marker.
+        # @return [self]
+        def finish
+          @writer.finish.each { |envelope| @transport.broadcast(envelope) }
+          self
+        end
+
+        # Broadcast a structured, PII-free error envelope and stop.
+        # @return [self]
+        def fail(error, code: "stream_failed")
+          @transport.broadcast(@writer.error_for(error, code: code))
+          self
+        end
+
+        # The next sequence number the writer will assign.
+        def sequence = @writer.sequence
+
+        # The underlying writer, for callers that need finer control.
+        attr_reader :writer
+      end
+    end
+  end
+end

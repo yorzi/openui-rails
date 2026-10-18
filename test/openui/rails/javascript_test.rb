@@ -7,22 +7,37 @@ require "tempfile"
 module OpenUI
   module Rails
     class JavascriptTest < ActiveSupport::TestCase
-      CONTROLLER = Engine.root.join("app/javascript/openui/rails/openui_controller.js")
+      JAVASCRIPT_ROOT = Engine.root.join("app/javascript")
 
-      test "the Stimulus controller ships with the engine" do
-        assert CONTROLLER.file?, "expected #{CONTROLLER} to exist"
+      # The controllers a host app registers. Kept explicit so a controller
+      # cannot be silently dropped from the engine.
+      EXPECTED_CONTROLLERS = %w[
+        app/javascript/openui/rails/openui_controller.js
+        app/javascript/openui/rails/openui_envelope_controller.js
+      ].freeze
+
+      test "the expected Stimulus controllers ship with the engine" do
+        EXPECTED_CONTROLLERS.each do |relative_path|
+          assert Engine.root.join(relative_path).file?, "expected #{relative_path} to exist"
+        end
       end
 
-      test "the Stimulus controller is valid ES module syntax" do
+      test "every shipped JavaScript file is valid ES module syntax" do
         skip "node is not available" unless node_available?
 
-        Tempfile.create([ "openui_controller", ".mjs" ]) do |file|
-          file.write(CONTROLLER.read)
-          file.flush
+        files = Dir[JAVASCRIPT_ROOT.join("**/*.js")]
 
-          _out, err, status = Open3.capture3("node", "--check", file.path)
+        assert_operator files.length, :>=, EXPECTED_CONTROLLERS.length
 
-          assert status.success?, "node --check failed:\n#{err}"
+        files.each do |path|
+          Tempfile.create([ File.basename(path, ".js"), ".mjs" ]) do |file|
+            file.write(File.read(path))
+            file.flush
+
+            _out, err, status = Open3.capture3("node", "--check", file.path)
+
+            assert status.success?, "node --check failed for #{path}:\n#{err}"
+          end
         end
       end
 

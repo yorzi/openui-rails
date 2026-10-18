@@ -52,13 +52,17 @@ export default class extends Controller {
     }
 
     this.onEnvelope = (event) => this.applyEnvelope(event.detail)
-    this.element.addEventListener("openui:envelope", this.onEnvelope)
+    // Listen on the document so any transport can deliver an envelope: a
+    // dispatch on this element bubbles up, and the envelope controller (used by
+    // the Turbo transport) re-emits from its own element. applyEnvelope ignores
+    // envelopes for other message ids, so a shared document listener is safe.
+    document.addEventListener("openui:envelope", this.onEnvelope)
 
     this.renderRuntime()
   }
 
   disconnect() {
-    this.element.removeEventListener("openui:envelope", this.onEnvelope)
+    document.removeEventListener("openui:envelope", this.onEnvelope)
     this.abortController?.abort()
     this.root?.unmount()
     this.root = null
