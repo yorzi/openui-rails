@@ -37,6 +37,18 @@ OpenUI::Rails.actions.register(
 
 The engine exposes the default endpoint at `/openui-rails/actions`. The install generator mounts the engine at `/openui-rails`. Adjust `actions_endpoint` if you mount it elsewhere.
 
+Component `onAction` events and browser `Query()`/`Mutation()` calls use the same request body:
+
+```json
+{
+  "action": "orders.refresh", "args": { "orderId": "42" },
+  "surface_id": "support-42", "version": 3,
+  "idempotency_key": "request-unique-key", "confirmed": false
+}
+```
+
+The bridge maps the runtime's `{ type, params }` event to `action` and `args`. The browser includes the Rails CSRF token. Do not infer confirmation from model parameters or form state; collect it in trusted host UI.
+
 ## Checks before execution
 
 The dispatcher parses the request, finds the registered action, validates arguments, checks any required confirmation, checks the surface revision, authorizes the invocation, and claims its idempotency key before calling the handler. A missing authorizer denies the request. A `surface_resolver` should resolve the submitted id inside the authenticated actor and tenant scope.
@@ -44,6 +56,21 @@ The dispatcher parses the request, finds the registered action, validates argume
 Set `confirmation: true` for an action that requires the host to submit `confirmed: true`. That value is a host-supplied acknowledgement, not cryptographic proof that a person approved the operation. For high-risk work, verify a signed, server-issued approval in the authorizer too.
 
 An idempotency key is scoped to actor and tenant and binds the request arguments. A retry with the same completed request replays the stored result. Reuse with different arguments is rejected. The default store is process-local; it does not coordinate workers or survive restarts. This is not an exactly-once guarantee.
+
+## Handle action errors
+
+The endpoint returns JSON with an `error` object containing `code` and `message`. Use the code to choose host-owned recovery UI. The browser rejects authentication redirects and malformed or mismatched responses instead of reporting success.
+
+| Code | HTTP status | Meaning |
+| --- | --- | --- |
+| `unknown_action` | 404 | The action is not registered. |
+| `unauthorized` | 403 | Authorization is missing or denied, or the surface is inaccessible. |
+| `stale_surface` | 409 | The surface revision has changed. |
+| `replay` | 409 | The key is still pending or was reused for a different request. |
+| `invalid_action` | 422 | The payload, arguments, or required confirmation are invalid. |
+| `csrf_failed` | 422 | The authenticity token is invalid. |
+
+The browser also reports `unauthorized` for a redirect and `invalid_response` for invalid endpoint responses through `openui:error`. A browser error event does not carry an HTTP status for these local checks. A tool call receives the handler's `value`; the `openui:action` event carries the full result.
 
 ## Next Steps
 

@@ -16,17 +16,29 @@ After reading this guide, you will know:
 * Which fingerprint to store on a rendered surface.
 * How to validate the configured files before serving traffic.
 
-## Generate a matching prompt and manifest
+## Use the default chat library
 
-OpenUI Rails uses the component-library prompt and spec together. The pinned OpenUI CLI writes both outputs from the same source revision:
+The default browser bundle contains `openuiChatLibrary` only. Save its prompt and spec before asking a model to generate UI. Fetch and register the runtime using [Runtime Assets]({% link _core_features/runtime-assets.md %}), then render a local surface with both library paths temporarily set to `nil`. This bootstrap page cannot verify library identity and should only be used locally.
+
+After the runtime loads, run each expression separately in that page's browser console:
+
+```js
+const library = window.__OpenUI.openuiChatLibrary
+library.prompt()
+JSON.stringify(library.toSpec(), null, 2)
+```
+
+Save the returned prompt string as `config/openui/library.prompt.txt` and the JSON as `config/openui/library.spec.json`. Save the string value, without console quotes or escape sequences. Restore both paths in the initializer and restart the app. Commit both files and run the validation below. The real-runtime compatibility probe uses `toSpec()` from the pinned bundle to check library identity; it does not qualify arbitrary custom libraries.
+
+## Generate a custom library
+
+A custom prompt does not add components to the default runtime. Build a matching runtime that exposes the same `window.__OpenUI` contract, including its library in the `openuiChatLibrary` slot used by the bridge. Use the pinned CLI to generate the prompt and spec from that library's source:
 
 ```sh
-npx --yes @openuidev/cli@0.6.0 generate ./src/library.ts --out config/openui/library.prompt.txt --no-telemetry
+npx --yes @openuidev/cli@{{ site.compatibility.cli }} generate ./src/library.ts --out config/openui/library.prompt.txt --no-telemetry
 ```
 
 The CLI writes a spec file next to the prompt, commonly named `library.prompt.txt.spec.json`. Rename it to `config/openui/library.spec.json`, or set `library_spec_path` to the generated filename. Commit both files. Set `DO_NOT_TRACK=1` in CI in addition to the CLI flag.
-
-The default browser bundle contains `openuiChatLibrary` only. A custom prompt does not add components to that runtime. A custom library needs a host-built runtime that exposes the same `window.__OpenUI` contract as the bundle.
 
 ## Validate and persist the right fingerprint
 

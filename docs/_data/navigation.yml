@@ -12,3 +12,5 @@
   url: /whats-new/
 - title: Releases
   url: https://github.com/yorzi/openui-rails/releases
+- title: Roadmap
+  url: https://github.com/yorzi/openui-rails/blob/main/ROADMAP.md

@@ -36,7 +36,7 @@ A nil surface resolution denies the action. If you do not use a resolver, your a
 
 ## Use shared atomic replay storage
 
-The default idempotency store is process-local memory. It cannot coordinate separate workers and is lost on restart. For a multi-process app, implement the `claim` and `record` contract on shared atomic storage and configure it:
+The default idempotency store is process-local memory. It cannot coordinate separate workers and is lost on restart. For a multi-process app, implement the [shared-store contract]({% link _getting_started/configuration.md %}#shared-idempotency-store-contract) on shared atomic storage and configure it:
 
 ```ruby
 config.idempotency_store = MyAtomicIdempotencyStore.new
@@ -50,6 +50,12 @@ A store must atomically distinguish a new claim, an in-progress claim, and a com
 Action Cable and Turbo Streams do not guarantee ordered or durable delivery. Persist canonical response state in the host and serve an authorized snapshot when the browser emits `openui:snapshot-required`. Keep provider credentials on the server and avoid logging unredacted requests or response context.
 
 `confirmed: true` is an application-level acknowledgement, not proof of human consent. For high-impact operations, require a signed approval or another server-verified control in the authorizer.
+
+## Review assets and content policy
+
+Self-hosting is the default. Keep exact runtime pins and integrity hashes for JavaScript and CSS; see [Runtime Assets]({% link _core_features/runtime-assets.md %}). The browser bundle runs as trusted page code, not in a sandbox. Review its full transitive license notices before redistributing it.
+
+The bridge adds no inline scripts. Your script policy must permit the runtime you serve. The upstream renderer uses inline styles and inserts a loading `<style>` element, so validate your `style-src` policy against the actual bundle. Script integrity alone does not establish strict-CSP compatibility.
 
 ## Next Steps
 

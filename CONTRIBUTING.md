@@ -57,6 +57,28 @@ cases.
   prompt CLI; pin exact versions.
 - Write commit messages that explain the *why*.
 
+## Documentation
+
+Keep the README as a short introduction and navigation page. Write setup,
+configuration, feature guides, and API contracts in `docs/`; the root
+`CONFIGURATION.md` and `UPGRADING.md` link there. Keep contributor instructions,
+security policy, release procedures, and audit evidence in the repository.
+
+Use [ROADMAP.md](ROADMAP.md) for proposed work toward 1.0. Record delivered
+changes in [CHANGELOG.md](CHANGELOG.md). A planned API is not a supported API.
+Update the relevant guide with each public API change and add migration steps
+when existing applications need changes.
+
+Build documentation before submitting it:
+
+```sh
+docs/bin/build.sh
+```
+
+The build includes the release docs at `/` and your working tree at `/next/`.
+Preview with `docs/bin/serve.sh`; it binds to `127.0.0.1:4000`. Stop it when you
+finish reviewing.
+
 ## Reporting security issues
 
 Please do not open a public issue for a security problem. See `SECURITY.md`.

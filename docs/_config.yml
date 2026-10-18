@@ -113,4 +113,8 @@ code_language: ruby
 # `released: true` and the new version in the commit you tag for a release.
 released: true
 version: "0.1.0"
+compatibility:
+  browser_runtime: "0.2.1"
+  cli: "0.6.0"
+  ruby_llm: "2.1.1"
 examples: {}

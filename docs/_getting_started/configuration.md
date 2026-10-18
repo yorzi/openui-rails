@@ -48,14 +48,14 @@ After you create the matching prompt and manifest, call `OpenUI::Rails.configura
 | `prompt_path` | `nil` | Prompt generated from the same library revision. |
 | `runtime_assets` | `:self_hosted` | Use vendored assets or configure explicit external URLs. |
 | `local_runtime_path` | `"/openui"` | Public URL directory for self-hosted assets. |
-| `runtime_version` | pinned `0.2.1` | Runtime version used by the fetch task and default asset URLs. |
+| `runtime_version` | pinned `{{ site.compatibility.browser_runtime }}` | Fetch accepts only the checksum-locked version; other versions are unverified. |
 | `runtime_url` | derived | Override the JavaScript URL. External and custom builds need an exact URL. |
 | `runtime_integrity` | pinned for the default runtime | Subresource integrity value for a custom JavaScript file. |
 | `runtime_stylesheet_url` | derived | Override the stylesheet URL; required for external assets. |
 | `runtime_stylesheet_integrity` | pinned for the default runtime | Subresource integrity value for a custom stylesheet. |
 | `actions_endpoint` | `"/openui-rails/actions"` | Must match the engine mount path in your routes. |
 | `stream_byte_limit` | `1_048_576` | Maximum response bytes per message. |
-| `pending_byte_limit` | `32_768` | Bytes buffered before a delta is emitted; cannot exceed the stream limit. |
+| `pending_byte_limit` | `32_768` | Bytes buffered before a delta is emitted; cannot exceed the stream limit. There is no timer-based flush. |
 | `idempotency_ttl` | `900` seconds | How long a claimed action key remains in the store. |
 | `idempotency_store` | process-local memory store | Replace it with an atomic shared store when multiple workers must coordinate. |
 | `idempotency_scope` | actor and tenant identity | Optional callable for stable custom actor or tenant identities. |
@@ -63,8 +63,30 @@ After you create the matching prompt and manifest, call `OpenUI::Rails.configura
 | `surface_resolver` | `nil` | Resolves a surface within the actor's authorized scope. |
 | `authorize_action` | `nil` | Global action authorizer. Missing authorization denies an action. |
 | `on_error` | `nil` | Server-side stream error hook. Avoid logging credentials or unredacted provider input. |
+| `action_registry` | lazy `Actions::Registry` | Allowlisted action definitions. Per-action `authorize:` takes precedence over the global authorizer. |
 
 `library_name` and `surface_id_param` are legacy metadata settings. They do not choose the runtime library or change the action request's `surface_id` key.
+
+## Shared idempotency-store contract
+
+Use a shared atomic store when separate processes can handle the same action. The dispatcher supplies a SHA-256 key scoped to trusted actor and tenant identity, plus a digest that binds the action, surface, version, arguments, and confirmation flag.
+
+Your store implements these two methods:
+
+```ruby
+claim(key, ttl:, digest:)
+# => [:claimed, nil, digest, claim_token]      # this request owns execution
+# => [:pending, nil, stored_digest, token]    # execution is in progress
+# => [:replay, result, stored_digest, token]  # completed, including nil/false
+
+record(key, result, claim_token: token)
+```
+
+Make `claim` atomic and assign a unique token to each new claim. Ignore `record` calls whose token has expired or no longer owns the key. Distinguish completed `nil` and `false` results from pending claims.
+
+The default identity is `[class, id]` for records and `[class, value]` for scalar identities. Unsupported identity objects require `idempotency_scope`. Derive that scope from trusted server state, never from client-supplied actor or tenant IDs. If tenant identity is not part of the actor identity, include the host's trusted tenant in a custom scope.
+
+A failed handler leaves a pending claim until expiry because side effects may already have happened. A handler that outlives its TTL can overlap a later claim. Process-local memory cannot coordinate workers or survive restarts. Keep business-level uniqueness and transactions around irreversible operations; this contract does not guarantee exactly-once execution.
 
 ## Next Steps
 

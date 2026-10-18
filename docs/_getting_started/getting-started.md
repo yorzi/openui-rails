@@ -25,7 +25,25 @@ bin/rails generate openui:install
 
 OpenUI Rails supports Ruby 3.2 or newer and Rails 8.0 or newer, below Rails 9. The generator writes an initializer and `config/openui/README.md`, then mounts the engine at `/openui-rails` when the host has a routes file.
 
-The generator does not download JavaScript assets or create a library prompt and manifest. Those steps are explicit so you can review and commit their inputs. See [Configuration]({% link _getting_started/configuration.md %}) for application settings.
+The generator does not download JavaScript assets or create a library prompt and manifest. Complete these steps before rendering:
+
+1. Fetch the pinned runtime, include its stylesheet, and register the Stimulus controllers using [Runtime Assets]({% link _core_features/runtime-assets.md %}).
+2. Save the matching default-library prompt and spec using [Library and Prompt Contract]({% link _core_features/library-contract.md %}#use-the-default-chat-library). The CLI path in that guide is for a custom library and requires a matching custom runtime.
+3. Run `bin/rails runner 'OpenUI::Rails.configuration.validate!'` after both files exist. See [Configuration]({% link _getting_started/configuration.md %}) for application settings.
+
+## Supported versions
+
+The gem uses exact OpenUI runtime and CLI pins. The CI workflow defines the tested Ruby and Rails combinations; a dependency range alone does not establish compatibility with future releases.
+
+| Component | Supported or verified scope |
+| --- | --- |
+| Ruby | Requires 3.2 or newer; CI covers 3.2, 3.3, and 3.4. |
+| Rails | Requires 8.0 or newer, below 9.0; CI covers 8.0 and 8.1. |
+| Browser runtime | `@openuidev/browser-bundle` {{ site.compatibility.browser_runtime }}, checksum-locked. |
+| Custom-library CLI | `@openuidev/cli` {{ site.compatibility.cli }}. |
+| RubyLLM | Optional; {{ site.compatibility.ruby_llm }} is verified with real SSE parsing and mocked HTTP. |
+
+On Rails 8.0, constrain `json` to `< 3`. Its ActiveSupport and integration helpers pass `quirks_mode:` to `JSON.generate`, which json 3.1 removed. Rails 8.1 no longer passes that keyword. The engine expects a full-stack host controller; API-only authentication and CSRF integration are not qualified by this release.
 
 ## Render a surface
 
@@ -44,7 +62,7 @@ Render the mount in a view:
 <%= openui_surface(surface: @surface, label: "Support") %>
 ```
 
-The helper outputs a mount element for the Stimulus controller. It does not render the response itself. Add the pinned runtime stylesheet once to the host layout, fetch the self-hosted runtime, and register the gem's Stimulus controllers as described in [Runtime Assets]({% link _core_features/runtime-assets.md %}). OpenUI Lang is rendered by the browser runtime.
+The helper outputs a mount element for the Stimulus controller. OpenUI Lang is rendered by the browser runtime. Before enabling actions, configure scoped surface lookup and authorization using [Server Actions]({% link _core_features/actions.md %}).
 
 ## Next Steps
 

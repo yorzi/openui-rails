@@ -46,3 +46,4 @@ The gem does not implement the OpenUI Lang parser or a persistence layer. A Rail
 * [Streaming Responses]({% link _core_features/streaming.md %}) - sequence provider output.
 * [Server Actions]({% link _core_features/actions.md %}) - authorize model-proposed work.
 * [Production Considerations]({% link _advanced/production.md %}) - review identity and replay boundaries.
+* [Roadmap on GitHub](https://github.com/yorzi/openui-rails/blob/main/ROADMAP.md) - review proposed work toward 1.0.

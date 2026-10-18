@@ -41,7 +41,7 @@ The adapter uses the configured byte limits and emits ordered `Stream::Envelope`
 
 ## Compatibility boundary
 
-The repository verifies RubyLLM `2.1.1` with deterministic OpenAI chat-completions SSE. Other versions and providers are not guaranteed by that check. The adapter does not make RubyLLM a gem dependency and does not configure provider credentials.
+The repository verifies RubyLLM `{{ site.compatibility.ruby_llm }}` with deterministic OpenAI chat-completions SSE. Other versions and providers are not guaranteed by that check. The adapter does not make RubyLLM a gem dependency and does not configure provider credentials.
 
 ## Next Steps
 

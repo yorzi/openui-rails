@@ -54,8 +54,24 @@ You can override mount-specific values with `stream:`, `dom_id:`, `initial_state
 
 When `library_spec_path` is configured, the helper rejects a surface whose non-nil `library_version` differs from the configured manifest fingerprint. The browser compares the loaded library with the same fingerprint before mounting. Without a manifest, the gem cannot verify that a prompt, stored response, and runtime library belong together.
 
+## Handle browser events
+
+Listen on the surface element for bubbling events and provide host-owned UI or persistence as needed. The controller receives `openui:envelope`; it emits these events:
+
+| Event | Detail fields | Host responsibility |
+| --- | --- | --- |
+| `openui:action` | `surfaceId`, `result` | Update host UI after a successful action or tool call. |
+| `openui:state` | `surfaceId`, `state` | Persist form state if it should survive a reload. |
+| `openui:error` | `surfaceId`, `code`, `message` | Show a fallback or recovery control. Some upstream errors have no code. |
+| `openui:snapshot-required` | `surfaceId`, `sequence` | Fetch and dispatch an authorized snapshot after a sequence gap. |
+
+The bridge does not provide fallback UI, snapshot endpoints, or an automatic reconnection policy. A library mismatch reports `library_version_mismatch` and prevents mounting. See [Streaming Responses]({% link _core_features/streaming.md %}) for recovery behavior.
+
+`label:` and `aria-busy` describe the mount, not the accessibility of every generated component. Automated tests cover named regions, busy states, and keyboard activation. A human screen-reader audit of generated content has not been performed.
+
 ## Next Steps
 
 * [Library and Prompt Contract]({% link _core_features/library-contract.md %}) - generate the manifest and prompt from one library.
 * [Runtime Assets]({% link _core_features/runtime-assets.md %}) - prepare JavaScript and CSS.
 * [Streaming Responses]({% link _core_features/streaming.md %}) - update a mounted surface incrementally.
+* [Stored Messages]({% link _core_features/messages.md %}) - keep response content and form context together.
