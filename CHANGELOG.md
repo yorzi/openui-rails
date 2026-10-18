@@ -12,6 +12,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the full request. Distinguish pending claims from completed nil results and
   fence expired writers with claim tokens.
 - Preserve host authentication filters and default current-user resolution.
+- Reject authentication redirects and malformed or mismatched action responses
+  instead of reporting a false success.
 - Canonicalize and copy JSON input before validation/fingerprinting; prevent
   mutable submissions, envelopes, surfaces, and manifests.
 - Enforce stream terminal states, completion ordering, snapshot watermarks,

@@ -233,31 +233,39 @@ export default class extends Controller {
       confirmed: payload.confirmed === true,
     }
 
-    let response
     try {
-      response = await fetch(this.actionsUrl, {
+      const response = await fetch(this.actionsUrl, {
         method: "POST",
         credentials: "same-origin",
         signal: this.abortController.signal,
         headers: this.headers(),
         body: JSON.stringify(body),
       })
+      if (response.redirected) {
+        throw Object.assign(new Error("Action request was redirected; authentication may have expired"), { code: "unauthorized" })
+      }
+      if (!response.headers.get("Content-Type")?.includes("application/json")) {
+        throw Object.assign(new Error("Action endpoint did not return JSON"), { code: "invalid_response" })
+      }
+      let json
+      try {
+        json = await response.json()
+      } catch {
+        throw Object.assign(new Error("Action endpoint returned malformed JSON"), { code: "invalid_response" })
+      }
+      if (!response.ok) {
+        throw Object.assign(new Error(json?.error?.message || "action failed"), { code: json?.error?.code })
+      }
+      const result = json?.result
+      if (!result || result.action !== body.action || result.surface_id !== body.surface_id || result.version !== body.version) {
+        throw Object.assign(new Error("Action response does not match the submitted action"), { code: "invalid_response" })
+      }
+      this.dispatch("action", { surfaceId: this.surfaceId, result })
+      return result
     } catch (error) {
       if (error.name !== "AbortError" || this.connection) this.handleError(error)
       throw error
     }
-
-    const json = await response.json().catch(() => ({}))
-    if (!response.ok) {
-      const error = Object.assign(new Error(json?.error?.message || "action failed"), {
-        code: json?.error?.code,
-      })
-      this.handleError(error)
-      throw error
-    }
-
-    this.dispatch("action", { surfaceId: this.surfaceId, result: json.result })
-    return json.result
   }
 
   // Every browser `Query()`/`Mutation()` tool call is routed to the same

@@ -15,6 +15,7 @@ bugs, and the human publication gates remain open.
 | Canonical input | Symbol-keyed and nested arguments had incorrect digests; mutable input could change after validation. | Deep canonical JSON copies and immutable data. Mutation and nested-digest tests. |
 | Claim state | A completed `nil` looked pending; an expired writer could overwrite a newer claim. | Explicit pending/replay states and per-claim tokens. Nil/false, expiry, and concurrent-claim tests. |
 | Host authentication | Engine controllers bypassed the host ApplicationController; documented default actor resolution was absent. | Host controller inheritance, explicit CSRF protection, current-user fallback, and tenant-swap tests. |
+| Action responses | Authentication redirects, malformed JSON, or unrelated result objects could appear successful. | Reject redirects and non-JSON/malformed/mismatched responses; browser regression tests. |
 | Stream ordering | Completion skipped missing deltas; stale snapshots rewound state; a gap did not pause later deltas. | Sequence gates for terminal frames and snapshots; Ruby/browser regressions. |
 | Terminal writers | Duplicate finishes and writes after errors emitted more frames. | One terminal state. Consumer/transport failures propagate instead of being relabelled provider failures. |
 | Browser lifecycle | Pre-load frames could render without a runtime; reconnect/cache restoration lost source or sequence state. | Deferred rendering, connection tokens, state preservation, real Turbo visit/back tests. |
@@ -33,7 +34,7 @@ bugs, and the human publication gates remain open.
 Local environment: Ruby 3.3.5, Rails 8.1.4, Chrome through Selenium.
 
 - Unit/integration: `208 runs, 539 assertions`, no failures or errors.
-- Deterministic browser suite: `30 runs, 93 assertions`, no failures or errors.
+- Deterministic browser suite: `32 runs, 104 assertions`, no failures or errors.
 - Real `@openuidev/browser-bundle` 0.2.1: `5 runs, 30 assertions`, no failures or errors.
   Includes matching runtime/spec identity, rendering, keyboard action, Query,
   click-triggered Mutation, and unknown-component rejection.

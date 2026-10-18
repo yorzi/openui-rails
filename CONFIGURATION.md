@@ -69,5 +69,10 @@ Listen for `openui:error` to show a host-owned error or fallback. Listen for
 The bridge emits these events; it does not implement the host's fallback UI,
 snapshot endpoint, reconnection policy, or persistence.
 
+The action bridge rejects authentication redirects and non-JSON, malformed, or
+mismatched results. An expired-session redirect emits `unauthorized`; a broken
+response contract emits `invalid_response`. Host callbacks may still redirect
+HTTP requests, but a redirect is never a successful JSON action result.
+
 Configure a matching manifest in production. Without one, the bridge cannot
 verify that the model prompt, stored output, and runtime library agree.
