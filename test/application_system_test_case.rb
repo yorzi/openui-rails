@@ -1,6 +1,19 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "selenium-webdriver"
+
+# Selenium's port availability probe otherwise briefly binds all interfaces.
+module OpenUILoopbackPortProbe
+  def free?(port)
+    TCPServer.open("127.0.0.1", port) { true }
+  rescue Errno::EADDRINUSE
+    false
+  end
+end
+Selenium::WebDriver::PortProber.singleton_class.prepend(OpenUILoopbackPortProbe)
+Capybara.server_host = "127.0.0.1"
+Capybara.save_path = ENV["OPENUI_BROWSER_ARTIFACTS"] if ENV["OPENUI_BROWSER_ARTIFACTS"]
 
 # Browser end-to-end tests run against the dummy app with a real headless
 # Chrome and a deterministic stub of the OpenUI runtime (see
@@ -11,6 +24,27 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     # Required when Chrome runs as root in a containerised CI runner.
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-background-networking")
+    options.binary = ENV["CHROME_BIN"] if ENV["CHROME_BIN"]
+  end
+
+  setup do
+    ActionController::Base.allow_forgery_protection = true
+  end
+
+  def after_teardown
+    if ENV["OPENUI_BROWSER_ARTIFACTS"]
+      label = passed? ? "passed" : "failed"
+      save_screenshot(File.join(Capybara.save_path, "#{self.class.name}-#{name.gsub(/[^a-zA-Z0-9_-]/, '_')}-#{label}.png"))
+    end
+  rescue StandardError => error
+    warn "Browser screenshot unavailable: #{error.class}"
+  ensure
+    begin
+      super
+    ensure
+      Capybara.current_session.driver.quit
+    end
   end
 
   private

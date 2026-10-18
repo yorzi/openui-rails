@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "fileutils"
+require "optparse"
+require "rbconfig"
+require_relative "../lib/openui/rails/version"
+$stdout.sync = true
+
+options = {}
+OptionParser.new do |parser|
+  parser.banner = "Usage: bin/check [--browser] [--runtime DIRECTORY] [--docs]"
+  parser.on("--browser", "Run deterministic browser tests") { options[:browser] = true }
+  parser.on("--runtime DIRECTORY", "Also test the verified real runtime") { |path| options[:runtime] = File.expand_path(path) }
+  parser.on("--docs", "Build stable and next documentation") { options[:docs] = true }
+end.parse!
+abort "Unexpected arguments: #{ARGV.join(' ')}" unless ARGV.empty?
+
+Dir.chdir(File.expand_path("..", __dir__)) do
+  ENV["RUBOCOP_CACHE_ROOT"] ||= File.expand_path("tmp/rubocop")
+  def run!(*command)
+    puts "\n> #{command.join(' ')}"
+    abort "Check failed: #{command.join(' ')}" unless system(*command)
+  end
+
+  run!("bundle", "exec", "rubocop")
+  run!("bundle", "exec", "bin/rails", "db:test:prepare")
+  run!("bundle", "exec", "bin/rails", "test")
+  run!("bundle", "exec", "ruby", "-Itest", "test/compatibility/ruby_llm_smoke.rb")
+  FileUtils.mkdir_p("tmp/package")
+  artifact = "tmp/package/openui-rails-#{OpenUI::Rails::VERSION}.gem"
+  run!("bundle", "exec", "gem", "build", "openui-rails.gemspec", "--output", artifact)
+  run!("bundle", "exec", "ruby", "bin/smoke-package", artifact)
+  run!(RbConfig.ruby, "bin/check-browser") if options[:browser] || options[:runtime]
+  run!(RbConfig.ruby, "bin/check-browser", "--runtime", options[:runtime]) if options[:runtime]
+  run!("docs/bin/build.sh") if options[:docs]
+end

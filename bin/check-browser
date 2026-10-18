@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "fileutils"
+require "optparse"
+require "rbconfig"
+require "tmpdir"
+$stdout.sync = true
+
+runtime = nil
+OptionParser.new do |parser|
+  parser.banner = "Usage: bin/check-browser [--runtime DIRECTORY] [test files]"
+  parser.on("--runtime DIRECTORY", "Use local checksum-verified upstream assets") { |path| runtime = File.expand_path(path) }
+end.parse!
+root = File.expand_path("..", __dir__)
+kind = runtime ? "real" : "stub"
+artifacts = File.join(root, "tmp/browser", "#{Time.now.utc.strftime('%Y%m%dT%H%M%S')}-#{Process.pid}-#{kind}")
+FileUtils.mkdir_p(artifacts)
+puts "Browser artifacts: #{artifacts}"
+
+Dir.mktmpdir("openui-browser-") do |temporary|
+  environment = {
+    "DATABASE_URL" => "sqlite3:#{temporary}/browser.sqlite3", "RAILS_ENV" => "test",
+    "OPENUI_BROWSER_ARTIFACTS" => artifacts, "OPENUI_REAL_RUNTIME_DIR" => runtime,
+    "SE_CACHE_PATH" => File.join(root, "tmp/selenium"), "SE_AVOID_STATS" => "true"
+  }
+  if runtime
+    require "bundler/setup"
+    require_relative "../lib/openui/rails"
+    OpenUI::Rails::RuntimePackage::FILES.each_value do |suffix, integrity|
+      path = File.join(runtime, "#{OpenUI::Rails::RuntimeAsset::FILE_PREFIX}-#{OpenUI::Rails::RuntimeAsset::PINNED_VERSION}.#{suffix}")
+      abort "Missing or mismatched runtime asset: #{path}" unless File.file?(path) &&
+        "sha384-#{Digest::SHA384.file(path).base64digest}" == integrity
+    end
+  end
+
+  command = if ARGV.any?
+    [ "bin/rails", "test", *ARGV ]
+  elsif runtime
+    [ "ruby", "-Itest", "test/compatibility/runtime_smoke.rb" ]
+  else
+    [ "bin/rails", "test:system" ]
+  end
+  passed = system(environment, "bundle", "exec", "bin/rails", "db:test:prepare", chdir: root) &&
+    system(environment, "bundle", "exec", *command, chdir: root)
+  abort "Browser checks failed; inspect #{artifacts}" unless passed
+end
+abort "Browser checks produced no screenshots: #{artifacts}" if Dir[File.join(artifacts, "*.png")].empty?

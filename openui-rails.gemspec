@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
     Dir["{app,config,lib}/**/*", "LICENSE", "README.md", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md",
       "CONFIGURATION.md", "UPGRADING.md", "SECURITY.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
-      "RELEASING.md", "AUDIT.md"].select { |path| File.file?(path) }
+      "RELEASING.md", "AUDIT.md", "DEVELOPMENT.md"].select { |path| File.file?(path) }
   end
   spec.require_paths = [ "lib" ]
 

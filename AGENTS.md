@@ -1,5 +1,12 @@
 # AGENTS.md
 
+## Development
+
+- Use `bin/check` for local verification and `bin/check-browser` for disposable browser runs. See `DEVELOPMENT.md` for focused commands and evidence boundaries.
+- Run database-backed suites sequentially. Inspect screenshots for browser changes, and turn reproducible UI regressions into assertions.
+- Keep `test/dummy` as the maintained host. Verify install and generator changes against the built gem in a temporary host.
+- Local checks do not establish remote CI or live-provider success. Keep artifacts synthetic, ignored, and free of credentials.
+
 ## Docs
 
 The documentation site lives in `docs/`: Jekyll with the jekyll-vitepress-theme, in four collections (`_getting_started`, `_core_features`, `_advanced`, `_reference`). Preview it with `docs/bin/serve.sh` and build it with `docs/bin/build.sh`.

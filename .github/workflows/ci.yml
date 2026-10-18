@@ -118,23 +118,22 @@ jobs:
         run: bin/rails db:test:prepare
 
       - name: Run browser (system) tests
-        run: bin/rails test:system
+        run: bin/check-browser
 
       - name: Fetch the real checksum-locked runtime
         run: bundle exec rake "app:openui:runtime:fetch[$RUNNER_TEMP/openui-runtime]"
 
       - name: Verify the real runtime, actions, tools, and keyboard activation
-        env:
-          OPENUI_REAL_RUNTIME_DIR: ${{ runner.temp }}/openui-runtime
-        run: bundle exec ruby -Itest test/compatibility/runtime_smoke.rb
+        run: bin/check-browser --runtime "$RUNNER_TEMP/openui-runtime"
 
-      - name: Keep screenshots from failed system tests
+      - name: Keep fixture browser screenshots
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: failure()
+        if: always()
         with:
           name: system-screenshots
-          path: ${{ github.workspace }}/test/dummy/tmp/screenshots
+          path: ${{ github.workspace }}/tmp/browser
           if-no-files-found: ignore
+          retention-days: 7
 
   build:
     runs-on: ubuntu-24.04

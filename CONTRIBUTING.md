@@ -14,6 +14,12 @@ bundle exec bin/rails db:test:prepare
 
 ## Before you open a pull request
 
+Use `bin/check` for the local lint, unit/integration, RubyLLM, and built-gem
+checks. Add `--browser` for deterministic browser tests and `--docs` for the
+versioned site build. For the real runtime, fetch its pinned assets explicitly
+and pass `--runtime tmp/real-runtime`. See [agent verification](DEVELOPMENT.md)
+for focused runs, screenshots, and test boundaries.
+
 ```bash
 bundle exec bin/rails test        # unit + integration tests
 bundle exec bin/rails test:system # browser (system) tests, needs Chrome
