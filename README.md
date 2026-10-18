@@ -125,18 +125,23 @@ It prints an optional SRI pin you can set as `config.runtime_integrity`. With
 `runtime_assets = :external` you must supply an explicit, exact-version
 `runtime_url` instead.
 
-### 4. Register the Stimulus controller
+### 4. Register the Stimulus controllers
 
 The engine adds its `app/javascript` directory to the asset paths, so the
-controller is importable as `openui/rails/openui_controller`:
+controllers are importable as `openui/rails/...`:
 
 ```js
 // app/javascript/controllers/index.js
 import { application } from "../application"
 import OpenUIController from "openui/rails/openui_controller"
+import OpenUIEnvelopeController from "openui/rails/openui_envelope_controller"
 
 application.register("openui", OpenUIController)
+application.register("openui-envelope", OpenUIEnvelopeController)
 ```
+
+The `openui` controller mounts the renderer; `openui-envelope` is only needed
+for the Turbo Streams transport (below).
 
 ### 5. Render a surface
 
@@ -197,6 +202,51 @@ requests a canonical snapshot (`openui:snapshot-required` event) when it detects
 a sequence gap, so a partial UI is never executed. It emits
 `openui:envelope`, `openui:action`, `openui:state` and `openui:error` events;
 the host decides how to persist form state.
+
+### Transports
+
+`Stream::Broadcaster` binds the bridge to a transport and broadcasts each
+envelope as it is produced. Delivery is best effort — neither Action Cable nor
+Turbo Streams guarantee order — which is exactly why the client applies
+sequence numbers and recovers from a snapshot on a gap.
+
+```ruby
+transport = OpenUI::Rails::Stream::Transports.build(:action_cable, stream_name: "openui:surface:#{surface.id}")
+# or: Transports.build(:turbo, stream: surface, target: "openui-surface-#{surface.id}")
+# or: Transports.build(:memory)   # tests/examples
+
+broadcaster = OpenUI::Rails::Stream::Broadcaster.new(
+  transport: transport, message_id: surface.id, library_version: config.library_fingerprint
+)
+chat.complete { |chunk| broadcaster.push(chunk.content) }
+broadcaster.finish
+```
+
+- **Action Cable** (`:action_cable`) broadcasts the envelope hash. Subscribe in
+  the browser and re-emit it as an event; authorization for the subscription
+  stays in your channel:
+
+  ```js
+  import { createConsumer } from "@rails/actioncable"
+  const consumer = createConsumer()
+  consumer.subscriptions.create(
+    { channel: "YourStreamChannel", stream: "openui:surface:42" },
+    { received: (data) =>
+        document.dispatchEvent(new CustomEvent("openui:envelope", { bubbles: true, detail: data })) }
+  )
+  ```
+
+- **Turbo Streams** (`:turbo`) appends an `openui-envelope` element to a target
+  already in the DOM. The `openui-envelope` controller re-emits the envelope as
+  a bubbling `openui:envelope` event and removes itself — no inline script, no
+  CSP relaxation. This transport requires `turbo-rails` in the host; it is
+  looked up lazily and never a hard dependency of this Gem.
+
+- **Memory** (`:memory`) keeps every envelope in memory for tests and examples.
+
+The surface controller listens for `openui:envelope` on `document`, so any
+transport that produces a bubbling event (or dispatches on the element) works,
+and envelopes for other `message_id`s are ignored.
 
 ## The action loop
 
@@ -305,17 +355,26 @@ Early development. The public API may change between `0.x` releases.
 
 Test status (honest, at `0.1.0`):
 
-- **Unit + integration** (Minitest, dummy Rails app): `158 runs, 388
+- **Unit + integration** (Minitest, dummy Rails app): `174 runs, 443
   assertions, 0 failures` via `bundle exec bin/rails test`.
-- **Not yet covered:** browser end-to-end tests (Playwright — stream ordering,
-  duplicate-mount, Turbo lifecycle), a real RubyLLM version, and a real provider
-  smoke run. `openui:runtime:fetch` requires npm and is not exercised in CI.
+- **Browser end-to-end** (Rails system tests, headless Chrome, a deterministic
+  stub runtime): `12 runs, 30 assertions, 0 failures` via
+  `bundle exec bin/rails test:system`. Covered: one React root per surface,
+  ordered delta accumulation, duplicate suppression, gap → snapshot request,
+  snapshot replacement, completion, error events, component-action and
+  browser-tool round-trips, Turbo envelope consumption, and unmount on
+  disconnect.
+- **Still uncovered:** a real RubyLLM version, a real provider smoke run, and a
+  real `openui:runtime:fetch` (npm) run in CI — the browser suite stubs the
+  runtime, so the pinned bundle itself is not exercised.
 
 ## Development
 
 ```bash
 bundle install
+bundle exec bin/rails db:test:prepare
 bundle exec bin/rails test        # unit + integration
+bundle exec bin/rails test:system # browser (needs Chrome)
 bundle exec rubocop               # rubocop-rails-omakase
 bundle exec gem build openui-rails.gemspec
 ```
@@ -327,6 +386,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - [`CHANGELOG.md`](CHANGELOG.md)
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`RELEASING.md`](RELEASING.md)
 - [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 - [`SECURITY.md`](SECURITY.md)
 

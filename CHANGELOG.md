@@ -26,5 +26,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Optional RubyLLM adapter (no hard dependency).
 - Stimulus mount controller and pinned runtime-asset resolution.
 - `openui:install` generator and the `openui:runtime:fetch` task.
+- Transport broadcasters (`ActionCable`, `TurboStreams`, `Memory`) behind
+  `Stream::Broadcaster`, and the `openui-envelope` Stimulus controller that
+  turns a Turbo Stream append into an `openui:envelope` event without inline
+  script.
+- Browser (system) test suite: lifecycle, stream ordering/duplicate/gap,
+  snapshot recovery, completion/error, and action/tool round-trips.
+- Tag-driven release workflow and `RELEASING.md`.
 
 [Unreleased]: https://github.com/yorzi/openui-rails/commits/main

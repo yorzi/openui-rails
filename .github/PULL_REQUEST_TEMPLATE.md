@@ -5,6 +5,8 @@ Describe the change and the reasoning behind it.
 ## Checklist
 
 - [ ] `bundle exec bin/rails test` is green.
+- [ ] `bundle exec bin/rails test:system` is green (or explain why it is not
+      applicable).
 - [ ] `bundle exec rubocop` is clean.
 - [ ] `bundle exec gem build openui-rails.gemspec` succeeds.
 - [ ] New behavior has tests, including negative/security cases where relevant

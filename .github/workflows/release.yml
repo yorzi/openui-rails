@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags: [ "v*" ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Publication is a deliberate step: add required reviewers to this
+    # environment so a human approves before the gem is pushed to RubyGems.
+    environment: release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ruby-3.3
+          bundler-cache: true
+
+      - name: Verify the tag matches the gem version
+        run: |
+          ruby -e '
+            require "./lib/openui/rails/version"
+            expected = "v#{OpenUI::Rails::VERSION}"
+            abort "tag #{ENV["GITHUB_REF_NAME"].inspect} does not match #{expected.inspect}" unless ENV["GITHUB_REF_NAME"] == expected
+          '
+
+      - name: Build the gem
+        run: gem build openui-rails.gemspec
+
+      - name: Publish to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: gem push openui-rails-*.gem
+
+      - name: Draft the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag

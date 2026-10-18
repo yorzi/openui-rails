@@ -16,9 +16,15 @@ bundle exec bin/rails db:test:prepare
 
 ```bash
 bundle exec bin/rails test        # unit + integration tests
+bundle exec bin/rails test:system # browser (system) tests, needs Chrome
 bundle exec rubocop               # style (rubocop-rails-omakase)
 bundle exec gem build openui-rails.gemspec
 ```
+
+The browser tests run against `test/dummy` with headless Chrome and a
+deterministic stub of the OpenUI runtime
+(`test/dummy/public/openui/openui-browser-bundle-0.2.1.js`), so they need no
+network or real bundle.
 
 Keep the test suite green and add negative/security tests alongside any new
 behavior. Changes to the action path or the stream protocol are expected to
