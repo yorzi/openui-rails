@@ -63,7 +63,7 @@ The documentation site contains the full guides and API reference:
 - [RubyLLM](https://openui-rails.wangyaodi.com/ruby-llm/) and [production setup](https://openui-rails.wangyaodi.com/production/)
 - [Upgrading](https://openui-rails.wangyaodi.com/upgrading/) and [API reference](https://openui-rails.wangyaodi.com/api-reference/)
 
-Version `0.1.0` is released. The API may change during `0.x`; see the
+Version `0.1.0` is released; `0.2.0` is an unpublished local candidate. The API may change during `0.x`; see the
 [changelog](CHANGELOG.md) and the proposed [path to 1.0](ROADMAP.md).
 The site's stable channel follows the latest release; [/next/](https://openui-rails.wangyaodi.com/next/)
 follows `main`.

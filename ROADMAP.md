@@ -1,7 +1,8 @@
 # Roadmap to 1.0
 
 Proposed on 2026-10-18 against the `0.1.0` implementation. Only `0.1.0` is
-released. Future features, command names, and milestones below are proposals,
+released. The `0.2.0` implementation is locally validated and remains unpublished;
+see [its validation record](VALIDATION_0_2.md). Milestones after 0.2 are proposals,
 not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
 
@@ -55,12 +56,13 @@ can skip unused minors; there is no need to fill 0.6 through 0.8 with features.
 ## 0.2.0: make default setup repeatable
 
 Keep this release to two features and the corresponding generator/doc changes.
+This milestone is implemented. The acceptance conditions below remain its scope.
 
-1. **Default-library preparation.** Add an explicit task, provisionally named
-   `openui:library:prepare`, that writes the prompt and spec from the exact pinned
+1. **Default-library preparation.** `openui:library:prepare` writes the prompt
+   and spec exported from the exact pinned
    default runtime. Reuse the runtime's `prompt()` and `toSpec()` outputs; do not
    rebuild the library definition in Ruby. Keep custom-library builds separate.
-2. **Read-only setup diagnostics.** Add `openui:doctor` as a proposed task name.
+2. **Read-only setup diagnostics.** `openui:doctor` inspects local setup.
    Report configured file validity, pinned local asset checksums, engine mount,
    and actionable setup omissions. Use a nonzero exit for required failures.
    Report checks that cannot be established statically as unverified, including
@@ -77,13 +79,10 @@ preserves existing files unless overwrite is explicit. Missing or mismatched
 inputs produce useful diagnostics; the report includes no credentials or prompt
 contents. Tests cover real artifact extraction, repeat runs, and error exits.
 
-**First implementation step:** prove a minimal extraction path against the
-checksum-verified bundle and identify its tooling dependency before choosing the
-public task API. Reuse an existing upstream export if available. If extraction
-requires a large new build/browser toolchain, split it out and ship diagnostics
-plus corrected generator guidance as 0.2.0. In that reduced release, require the
-diagnostic and error-exit checks above, document the remaining manual export,
-and move the no-console setup acceptance condition to 0.3 with the automation.
+**Implementation:** the maintainer exporter uses the existing Selenium/Chrome
+development tools against the checksum-verified bundle. The gem ships those
+exports, their provenance, and the upstream license. Applications prepare them
+with Ruby alone. The real-runtime suite compares them with the actual library.
 
 ## 0.3.0: prove a complete host workflow
 

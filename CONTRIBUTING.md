@@ -25,7 +25,7 @@ bundle exec bin/rails test        # unit + integration tests
 bundle exec bin/rails test:system # browser (system) tests, needs Chrome
 bundle exec rubocop               # style (rubocop-rails-omakase)
 bundle exec gem build openui-rails.gemspec
-bundle exec ruby bin/smoke-package openui-rails-0.1.0.gem
+bundle exec ruby bin/smoke-package openui-rails-0.2.0.gem
 bundle exec bundler-audit check --update
 bundle exec ruby -Itest test/compatibility/ruby_llm_smoke.rb
 ```

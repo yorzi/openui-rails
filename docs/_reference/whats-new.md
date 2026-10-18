@@ -1,7 +1,8 @@
 ---
 layout: default
 title: What's New in 0.1
-nav_order: 6
+nav_order: 1
+parent: Release History
 description: Learn what the first OpenUI Rails release provides and which responsibilities stay in your Rails application.
 ---
 
@@ -12,12 +13,12 @@ description: Learn what the first OpenUI Rails release provides and which respon
 
 After reading this guide, you will know:
 
-* Which capabilities are documented on the current default branch.
+* Which capabilities are included in the first release.
 * Which integration boundaries to review before deploying your application.
 
 ## First release
 
-Version `{{ site.version }}` introduces the Rails engine, stream protocol, and action bridge. The initial release is dated 2026-10-18. The Ruby API can change in later `0.x` releases. Read [Upgrading]({% link _reference/upgrading.md %}) before moving from an earlier Git checkout.
+Version `0.1.0` introduces the Rails engine, stream protocol, and action bridge. The initial release is dated 2026-10-18. The Ruby API can change in later `0.x` releases. Read [Upgrading]({% link _reference/upgrading.md %}) before moving from an earlier Git checkout.
 
 The current implementation includes:
 

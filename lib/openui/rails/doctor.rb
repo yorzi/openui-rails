@@ -60,8 +60,10 @@ module OpenUI
         raise ConfigurationError unless endpoint.end_with?("/actions")
 
         mounts = @routes.routes.select { |route| route.app.respond_to?(:app) && route.app.app == Engine }
+        mount_path = endpoint.delete_suffix("/actions")
+        mount_path = "/" if mount_path.empty?
         matching = mounts.any? do |route|
-          route.path.spec.to_s == endpoint.delete_suffix("/actions") && (route.verb.empty? || route.verb.include?("POST"))
+          route.path.spec.to_s == mount_path && (route.verb.empty? || route.verb.include?("POST"))
         end
         if matching
           record("actions route", :pass, "Static engine mount matches actions_endpoint. Request constraints were not executed.")

@@ -15,6 +15,10 @@ After reading this guide, you will know:
 * How to initialize the default library without browser-console copying.
 * How to find missing local setup steps without running actions.
 
+Version `{{ site.version }}` is a local development candidate and is not
+published. See [Release History]({% link _reference/release-history.md %}) for
+published versions.
+
 ## Prepare the default library
 
 After installing the engine, copy the exact pinned chat-library exports:

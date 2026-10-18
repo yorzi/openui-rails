@@ -45,6 +45,7 @@ Dir.mktmpdir("openui-package-smoke") do |directory|
     gem "openui-rails", path: #{extracted.inspect}
     gem "propshaft"
     gem "sqlite3"
+    #{'gem "json", "< 3"' if Gem.loaded_specs.fetch("rails").version < Gem::Version.new("8.1")}
   GEMFILE
   if runtime
     File.open(File.join(host, "Gemfile"), "a") do |file|

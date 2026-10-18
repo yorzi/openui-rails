@@ -74,6 +74,22 @@ module OpenUI
         assert diagnose.checks.any? { |entry| entry.name == "runtime assets" && entry.status == :unverified }
       end
 
+      test "supports an engine mounted at the application root" do
+        routes = ActionDispatch::Routing::RouteSet.new
+        routes.draw { mount OpenUI::Rails::Engine => "/" }
+        @configuration.actions_endpoint = "/actions"
+        result = Doctor.new(root: @root, configuration: @configuration, routes: routes).run
+        assert result.checks.any? { |entry| entry.name == "actions route" && entry.status == :pass }
+      end
+
+      test "marks dynamic mounts unverified without executing their constraints" do
+        routes = ActionDispatch::Routing::RouteSet.new
+        routes.draw { mount OpenUI::Rails::Engine => "/:locale/openui" }
+        @configuration.actions_endpoint = "/en/openui/actions"
+        result = Doctor.new(root: @root, configuration: @configuration, routes: routes).run
+        assert result.checks.any? { |entry| entry.name == "actions route" && entry.status == :unverified }
+      end
+
       test "detects incorrect mount configuration and a missing custom stylesheet" do
         @configuration.actions_endpoint = "/not-mounted/actions"
         assert diagnose.checks.any? { |entry| entry.name == "actions route" && entry.status == :fail }

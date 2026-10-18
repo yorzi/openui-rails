@@ -12,40 +12,38 @@ description: Move an OpenUI Rails application between documented gem releases wi
 
 After reading this guide, you will know:
 
-* How to install the first gem release.
-* Which changes affect applications built from an earlier Git checkout.
+* How to try the next version from an application using 0.1.0.
+* How to preserve existing library files and host authorization.
 
-## Install version {{ site.version }}
+## Upgrade from 0.1.0
 
-Replace a Git dependency with the published gem in your application's `Gemfile`:
+{% if site.docs_unreleased %}Version `{{ site.version }}` is not published. To test the default branch, use a Git dependency:
+
+```ruby
+gem "openui-rails", git: "https://github.com/yorzi/openui-rails", branch: "main"
+```
+{% else %}Set the new version in your application's `Gemfile`:
 
 ```ruby
 gem "openui-rails", "~> {{ site.version }}"
 ```
+{% endif %}
 
-Run `bundle update openui-rails`. New applications can follow [Getting Started]({% link _getting_started/getting-started.md %}). This is the first gem release, so there is no upgrade from an earlier published version.
+Run `bundle update openui-rails`. No database migration or controller change is required. Existing applications do not need to rerun the installer or replace a working library.
 
-## Use the next setup tasks from 0.1.0
+## Inspect setup without replacing custom files
 
-The new setup tasks are additive. Existing applications do not need to rerun
-the installer or replace a working library. Run `openui:doctor` to inspect local
-setup. Use `openui:library:prepare` only when you want the pinned default chat
-library. Different existing files require explicit overwrite; preserve custom
-prompts, specs, and their matching runtimes.
+```sh
+bin/rails openui:doctor
+```
 
-## Earlier development checkouts
+Review failures and unverified checks using [Setup Diagnostics]({% link _getting_started/setup-diagnostics.md %}). The task does not certify your host's authorization, browser integration, shared store, or recovery flow.
 
-If your application used an earlier Git revision, review these changes:
+Use `openui:library:prepare` only when you want the pinned default chat library. It preserves identical files and rejects different existing files before writing. Back up custom prompts, specs, and runtime builds before using the explicit overwrite argument. See [Library and Prompt Contract]({% link _core_features/library-contract.md %}).
 
-* Custom idempotency stores distinguish pending claims from completed replays, return a claim token, and accept `record(..., claim_token:)`. See [Configuration]({% link _getting_started/configuration.md %}).
-* Action arguments use canonical JSON copies with string keys. Submissions, surfaces, envelopes, and manifests do not share mutable caller input.
-* The engine inherits your host's `ApplicationController` and retains its authentication filters. This release requires full-stack controllers. API-only authentication and CSRF integration need separate qualification.
-* Surface helpers and the browser verify the configured library identity. A custom prompt and spec need a matching custom browser runtime. See [Library Contract]({% link _core_features/library-contract.md %}).
-* Add `<%= openui_stylesheet_tag %>` once in your layout. Fetch the pinned JavaScript, CSS, and upstream license with `bin/rails openui:runtime:fetch`. See [Runtime Assets]({% link _core_features/runtime-assets.md %}).
-* Terminal stream frames use the same sequence checks as deltas. After a gap, your host must deliver an authoritative snapshot before streaming resumes. See [Streaming]({% link _core_features/streaming.md %}).
-* The RubyLLM adapter adds the question as a user message before calling block-only `Chat#complete`. Both `:complete` and `:ask` are verified with RubyLLM {{ site.compatibility.ruby_llm }}. See [RubyLLM Adapter]({% link _advanced/ruby-llm.md %}).
+Manifest name queries now support the upstream spec's name-keyed maps. A default-library manifest's `component_names` returns its declared names instead of an empty list. Existing array-based manifests and their fingerprints are unchanged.
 
-Keep database constraints and transactions around irreversible host actions. Idempotency TTL expiry and process restarts do not provide an exactly-once guarantee.
+For applications built before 0.1.0, first read the [0.1.0 migration notes](https://github.com/yorzi/openui-rails/blob/v0.1.0/docs/_reference/upgrading.md).
 
 ## Plan a rollback
 
@@ -53,5 +51,5 @@ Review the target version's upgrade guide and changelog before downgrading the g
 
 ## Next Steps
 
-* [What's New]({% link _getting_started/whats-new.md %}) - see the current feature overview.
+* [What's New]({% link _getting_started/whats-new-in-0-2.md %}) - see the current feature overview.
 * [Release History]({% link _reference/release-history.md %}) - check published versions.
