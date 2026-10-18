@@ -30,9 +30,12 @@ module OpenUI
         attr_reader :message_id, :sequence, :type, :library_version, :data
 
         def initialize(type:, message_id:, sequence:, library_version: nil, data: {})
-          @type = validate_type(type)
+          @type = validate_type(type).dup.freeze
           @message_id = validate_message_id(message_id).dup.freeze
           @sequence = validate_sequence(sequence)
+          unless library_version.nil? || library_version.is_a?(String)
+            raise StreamError, "library_version must be a String"
+          end
           @library_version = library_version&.dup&.freeze
           unless data.is_a?(Hash) && (data.keys.map(&:to_s) & %w[type message_id sequence library_version]).empty?
             raise StreamError, "envelope data cannot override routing metadata"

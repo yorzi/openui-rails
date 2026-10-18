@@ -48,6 +48,9 @@ module OpenUI
 
         # Parse and validate a manifest from a JSON string.
         def parse(json, source: nil)
+          raise ManifestError, "library spec must be a JSON string" unless json.is_a?(String)
+          raise ManifestError, "library spec too large" if json.bytesize > MAX_BYTES
+
           document = JSON.parse(json)
           build(document, source: source)
         rescue JSON::ParserError => e
@@ -82,14 +85,14 @@ module OpenUI
       attr_reader :document, :name, :version, :source
 
       def initialize(document:, name: nil, version: nil, source: nil)
-        @document = deep_freeze(document)
-        @name = name
-        @version = version
-        @source = source
-        @canonical_json = build_canonical_json
-        @digest = Digest::SHA256.hexdigest(@canonical_json)
-        @fingerprint = "sha256:#{@digest}"
-        @identifier = build_identifier
+        @document = JsonValue.copy(document)
+        @name = name&.dup&.freeze
+        @version = version&.dup&.freeze
+        @source = source&.dup&.freeze
+        @canonical_json = build_canonical_json.freeze
+        @digest = Digest::SHA256.hexdigest(@canonical_json).freeze
+        @fingerprint = "sha256:#{@digest}".freeze
+        @identifier = build_identifier.freeze
         freeze
       end
 
@@ -182,16 +185,6 @@ module OpenUI
         else
           value
         end
-      end
-
-      def deep_freeze(value)
-        case value
-        when Hash
-          value.each_value { |entry| deep_freeze(entry) }
-        when Array
-          value.each { |entry| deep_freeze(entry) }
-        end
-        value.freeze
       end
 
       def secure_compare(left, right)

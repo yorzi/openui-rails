@@ -24,7 +24,7 @@ module OpenUI
                     :stream_byte_limit, :pending_byte_limit, :idempotency_ttl,
                     :authorize_action, :on_error, :action_registry, :surface_resolver, :actor_resolver,
                     :runtime_version, :runtime_url, :runtime_integrity, :local_runtime_path,
-                    :idempotency_scope
+                    :idempotency_scope, :runtime_stylesheet_url, :runtime_stylesheet_integrity
 
       def initialize
         @transport = :turbo
@@ -50,7 +50,7 @@ module OpenUI
       end
 
       def transport=(value)
-        value = value.to_sym
+        value = value.to_sym if value.respond_to?(:to_sym)
         unless TRANSPORTS.include?(value)
           raise ConfigurationError, "unsupported transport #{value.inspect}; expected one of #{TRANSPORTS.inspect}"
         end
@@ -59,7 +59,7 @@ module OpenUI
       end
 
       def runtime_assets=(value)
-        value = value.to_sym
+        value = value.to_sym if value.respond_to?(:to_sym)
         unless ASSET_STRATEGIES.include?(value)
           raise ConfigurationError,
                 "unsupported runtime_assets #{value.inspect}; expected one of #{ASSET_STRATEGIES.inspect}"
@@ -74,6 +74,19 @@ module OpenUI
         end
 
         @idempotency_store = store
+      end
+
+      def library_spec_path=(path)
+        @library_spec_path = path
+        reset!
+      end
+
+      def idempotency_scope=(callable)
+        unless callable.nil? || callable.respond_to?(:call)
+          raise ConfigurationError, "idempotency_scope must respond to #call"
+        end
+
+        @idempotency_scope = callable
       end
 
       def authorize_action=(callable)
@@ -133,8 +146,8 @@ module OpenUI
         self
       end
 
-      # Raise when required settings are missing. Called by the engine before
-      # the app serves requests so misconfiguration fails fast and visibly.
+      # Explicit host readiness check. Not run during boot: the generator and
+      # runtime-fetch task must work before library files have been created.
       def validate!
         raise ConfigurationError, "library_spec_path is not configured" if library_spec_path.nil?
 
@@ -142,12 +155,17 @@ module OpenUI
           raise ConfigurationError, "runtime_assets :external requires an explicit, version-pinned runtime_url"
         end
 
-        if pending_byte_limit <= 0 || stream_byte_limit <= 0
+        unless pending_byte_limit.is_a?(Integer) && stream_byte_limit.is_a?(Integer) &&
+            pending_byte_limit > 0 && stream_byte_limit > 0
           raise ConfigurationError, "stream byte limits must be positive"
         end
 
         if pending_byte_limit > stream_byte_limit
           raise ConfigurationError, "pending_byte_limit must not exceed stream_byte_limit"
+        end
+
+        unless idempotency_ttl.is_a?(Numeric) && idempotency_ttl.finite? && idempotency_ttl > 0
+          raise ConfigurationError, "idempotency_ttl must be positive"
         end
 
         true

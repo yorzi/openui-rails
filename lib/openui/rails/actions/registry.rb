@@ -32,7 +32,7 @@ module OpenUI
           end
 
           definition = Definition.new(
-            name: normalize_name(name),
+            name: normalize_name(name).dup.freeze,
             handler: handler,
             authorize: authorize,
             schema: Schema.from(schema),

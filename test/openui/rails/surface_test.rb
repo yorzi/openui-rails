@@ -5,6 +5,16 @@ require "test_helper"
 module OpenUI
   module Rails
     class SurfaceTest < ActiveSupport::TestCase
+      test "accepts JSON-style keys and takes an immutable copy" do
+        response = +"hello"
+        surface = Surface.coerce({ "id" => "json", "response" => response, "context" => { "items" => [ 1 ] } })
+        response.replace("changed")
+
+        assert_equal "json", surface.id
+        assert_equal "hello", surface.response
+        assert_raises(FrozenError) { surface.context["items"] << 2 }
+      end
+
       Record = Struct.new(:id, :version, :library_version, :response, :context)
 
       test "builds a mount data hash" do

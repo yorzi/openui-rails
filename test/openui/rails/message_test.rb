@@ -102,7 +102,7 @@ module OpenUI
         stored = <<~MSG.chomp
           ]]>openui:content
           visible
-          ]]>openui:something-else
+          ]]>openui:somethingelse
           hidden
           ]]>openui:end
         MSG
@@ -165,9 +165,27 @@ module OpenUI
         refute_includes Message.strip(STORED), "]]>openui:"
       end
 
-      test "Parsed#to_h maps finished back to the upstream end key" do
+        test "Parsed#to_h maps finished back to the upstream end key" do
         assert_equal true, Message.parse(STORED).to_h[:end]
-      end
+        end
+
+        test "matches upstream CRLF boundaries and preserves text after an end marker" do
+          stored = "]]>openui:content\r\nfirst\r\n]]>openui:end\r\nsecond"
+          parsed = Message.parse(stored)
+
+          assert_equal "first\nsecond", parsed.content
+          assert parsed.finished?
+        end
+
+        test "context is parsed only after the whole section has been accumulated" do
+          stored = Message.build(content: "x", context: "1\nnot json", finished: true)
+          assert_equal "1\nnot json", Message.parse(stored).context
+        end
+
+        test "invalid marker syntax is ordinary content" do
+          stored = "]]>openui:content\nx\n]]>openui:something-else\ny"
+          assert_equal "x\n]]>openui:something-else\ny", Message.parse(stored).content
+        end
     end
   end
 end

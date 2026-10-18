@@ -23,7 +23,14 @@ module OpenUI
         case value
         when nil then {}
         when Surface then value.to_h
-        when Hash then value.slice(*ATTRIBUTES)
+        when Hash
+          ATTRIBUTES.each_with_object({}) do |key, attributes|
+            if value.key?(key)
+              attributes[key] = value[key]
+            elsif value.key?(key.to_s)
+              attributes[key] = value[key.to_s]
+            end
+          end
         else extract_record(value)
         end
       end
@@ -42,15 +49,19 @@ module OpenUI
 
       def initialize(id:, version: 0, library_version: nil, response: nil, context: nil,
                      streaming: false, message_id: nil)
-        raise ArgumentError, "surface id is required" if id.nil?
+        raise ArgumentError, "surface id is required" if id.nil? || id.to_s.empty?
+        unless version.nil? || (version.is_a?(Integer) && version >= 0)
+          raise ArgumentError, "surface version must be a non-negative Integer"
+        end
+        raise ArgumentError, "surface response must be a String" unless response.nil? || response.is_a?(String)
 
-        @id = id.to_s
+        @id = id.to_s.dup.freeze
         @version = version || 0
-        @library_version = library_version
-        @response = response
-        @context = context
+        @library_version = library_version&.to_s&.dup&.freeze
+        @response = response&.dup&.freeze
+        @context = JsonValue.copy(context)
         @streaming = streaming ? true : false
-        @message_id = message_id&.to_s || @id
+        @message_id = (message_id&.to_s || @id).dup.freeze
         freeze
       end
 

@@ -95,4 +95,22 @@ class ActionsEndpointTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
     assert_equal "invalid_action", JSON.parse(response.body).dig("error", "code")
   end
+
+  test "the engine inherits host authentication and rejects a swapped surface" do
+    assert_operator OpenUI::Rails::ActionsController, :<, ::ApplicationController
+    calls = []
+    register("orders.refresh") { calls << :called }
+    @config.actor_resolver = ->(*) { :alice }
+    @config.surface_resolver = ->(id, actor:, **) do
+      OpenUI::Rails::Surface.new(id: id, version: 1) if actor == :alice && id == "owned"
+    end
+
+    post "/openui-rails/actions", params: payload(surface_id: "another-tenant"), as: :json
+    assert_response :forbidden
+    assert_empty calls
+
+    post "/openui-rails/actions", params: payload(surface_id: "owned"), as: :json
+    assert_response :success
+    assert_equal [ :called ], calls
+  end
 end

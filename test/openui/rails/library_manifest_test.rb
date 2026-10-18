@@ -6,6 +6,15 @@ require "tempfile"
 module OpenUI
   module Rails
     class LibraryManifestTest < ActiveSupport::TestCase
+      test "does not freeze caller-owned input and cannot mutate a fingerprint" do
+        document = { "components" => [ { "name" => +"Card" } ] }
+        manifest = LibraryManifest.build(document)
+        document["components"].first["name"].replace("Changed")
+
+        assert_equal [ "Card" ], manifest.component_names
+        assert_raises(FrozenError) { manifest.fingerprint.replace("forged") }
+      end
+
       DOCUMENT = {
         "name" => "support",
         "version" => "1.2.0",

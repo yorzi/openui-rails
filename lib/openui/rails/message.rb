@@ -60,12 +60,38 @@ module OpenUI
         # @param streaming [Boolean] hold back a trailing partial marker line
         # @return [Parsed]
         def parse(stored, streaming: false)
-          text = stored.to_s
-          return empty_parse(text) unless marker_present?(text)
-
-          lines = normalized_lines(text)
-          lines = drop_partial_marker(lines) if streaming && !text.end_with?("\n")
-          assemble(lines)
+          # Match lang-core 1.0.1 framing, including retries, CRLF boundaries
+          # and incomplete streaming markers. This is not a DSL parser.
+          text = stored.to_s.gsub(/([^\n])(?=\]\]>openui:content(?:\?|\r?\n|\z))/, "\\1\n")
+          if streaming && (cut = /[^\n](\]\]>[a-z:]*)\z/.match(text)) && CONTENT_MARKER.start_with?(cut[1])
+            text = text[0..cut.begin(0)]
+          end
+          lines = text.split("\n", -1)
+          last = lines.last
+          held = streaming && last && !last.empty? && (last.start_with?(MARKER_PREFIX) || MARKER_PREFIX.start_with?(last))
+          lines.pop if held
+          sections = [ { kind: nil, attributes: {}, lines: [] } ]
+          end_at = -1
+          lines.each_with_index do |line, index|
+            match = /\A\]\]>openui:([a-z]+)(?:\?(.*))?\z/.match(line.delete_suffix("\r"))
+            unless match
+              sections.last[:lines] << line
+              next
+            end
+            close_section(sections.last)
+            if match[1] == "end"
+              end_at = sections.size - 1
+              break if index == lines.size - 2 && lines.last == ""
+            else
+              sections << { kind: match[1], attributes: decode_attributes(match[2]), lines: [] }
+            end
+          end
+          close_section(sections.last) if held
+          winner = sections.rindex { |section| section[:kind] == "content" } || 0
+          context_index = sections.rindex { |section| section[:kind] == "context" }
+          context = parse_context(sections[context_index][:lines].join("\n")) if context_index && context_index > winner
+          Parsed.new(content: sections[winner][:lines].join("\n"), context: context,
+            attributes: sections[winner][:attributes], finished: end_at >= winner)
         end
 
         # Strip the markers for model history; returns only the content body.
@@ -75,87 +101,14 @@ module OpenUI
 
         private
 
-        def empty_parse(text)
-          Parsed.new(content: text, context: nil, attributes: {}, finished: false)
-        end
-
         def content_marker(attributes)
           return CONTENT_MARKER if attributes.nil? || attributes.empty?
 
           "#{CONTENT_MARKER}?#{URI.encode_www_form(attributes)}"
         end
 
-        def marker_present?(text)
-          text.include?(CONTENT_MARKER) ||
-            text.split("\n").any? { |line| line.start_with?(MARKER_PREFIX) }
-        end
-
-        # A content marker that appears mid-line is moved onto its own line
-        # first; the other markers only count at the start of a line.
-        def normalized_lines(text)
-          text.gsub(/(?<=[^\n])#{Regexp.escape(CONTENT_MARKER)}/, "\n#{CONTENT_MARKER}").split("\n", -1)
-        end
-
-        def drop_partial_marker(lines)
-          last = lines.last
-          return lines unless last && MARKERS.any? { |marker| marker.start_with?(last) }
-
-          lines[0..-2]
-        end
-
-        def assemble(lines)
-          state = { section: nil, content: [], context: nil, attributes: {}, content_seen: false, finished: false }
-          preamble = []
-          lines.each do |line|
-            if line.start_with?(MARKER_PREFIX)
-              handle_marker(state, line)
-            else
-              append_line(state, preamble, line)
-            end
-          end
-
-          content = state[:content_seen] ? state[:content].join("\n") : preamble.join("\n")
-
-          Parsed.new(
-            content: content,
-            context: state[:context],
-            attributes: state[:attributes],
-            finished: state[:finished]
-          )
-        end
-
-        def handle_marker(state, line)
-          kind, _, query = line.delete_prefix(MARKER_PREFIX).partition("?")
-
-          case kind
-          when "content"
-            state[:content_seen] = true
-            state[:content] = []
-            state[:context] = nil
-            state[:attributes] = decode_attributes(query)
-            state[:section] = :content
-          when "context"
-            state[:section] = :context
-          when "end"
-            state[:finished] = true
-            state[:section] = :ignored
-          else
-            state[:section] = :ignored
-          end
-        end
-
-        def append_line(state, preamble, line)
-          case state[:section]
-          when :content then state[:content] << line
-          when :context then append_context(state, line)
-          when :ignored then nil
-          else preamble << line
-          end
-        end
-
-        def append_context(state, line)
-          body = [ state[:context].is_a?(String) ? state[:context] : nil, line ].compact.join("\n")
-          state[:context] = parse_context(body)
+        def close_section(section)
+          section[:lines][-1] = section[:lines].last.delete_suffix("\r") unless section[:lines].empty?
         end
 
         def parse_context(body)
@@ -167,9 +120,18 @@ module OpenUI
         def decode_attributes(query)
           return {} if query.nil? || query.empty?
 
-          URI.decode_www_form(query).to_h
+          query.split("&").each_with_object({}) do |pair, attributes|
+            key, _, value = pair.partition("=")
+            key = decode_attribute(key)
+            attributes[key] = decode_attribute(value) unless key.empty?
+          end
+        end
+
+        def decode_attribute(value)
+          decoded = URI.decode_www_form_component(value)
+          decoded.valid_encoding? ? decoded : value
         rescue ArgumentError
-          {}
+          value
         end
       end
     end

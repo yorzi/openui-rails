@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require "rails"
 require "active_support/inflector"
+require "rails/engine"
 
 # Register the acronym before the engine class is defined: `isolate_namespace`
 # computes the routing module scope with `underscore` at class-definition time,

@@ -22,6 +22,13 @@ module OpenUI
         end
       end
 
+      test "the documented Ruby entry point loads without preloading Rails" do
+        output, error, status = Open3.capture3("bundle", "exec", "ruby", "-Ilib", "-e",
+          'require "openui/rails"; puts OpenUI::Rails::VERSION')
+        assert status.success?, error
+        assert_includes output, OpenUI::Rails::VERSION
+      end
+
       test "every shipped JavaScript file is valid ES module syntax" do
         skip "node is not available" unless node_available?
 

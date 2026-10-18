@@ -16,7 +16,7 @@ module OpenUI
 
           def validate!(args)
             raise InvalidActionError, "action arguments must be an object" unless args.is_a?(Hash)
-            raise InvalidActionError, "action arguments failed validation" if @callable.call(args) == false
+            raise InvalidActionError, "action arguments failed validation" unless @callable.call(args)
 
             args
           end

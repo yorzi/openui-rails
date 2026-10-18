@@ -4,7 +4,7 @@ module OpenUI
   module Rails
     # Internal canonical JSON copy. Never freezes caller-owned values or lets
     # mutable input change a fingerprint after validation.
-    module JsonValue
+    module JsonValue # :nodoc:
       def self.copy(value, depth = 0)
         raise ArgumentError, "JSON nesting exceeds 100 levels" if depth > 100
 

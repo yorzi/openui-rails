@@ -38,7 +38,9 @@ module OpenUI
 
       def actor
         resolver = OpenUI::Rails.configuration.actor_resolver
-        resolver ? resolver.call(self) : nil
+        return resolver.call(self) if resolver
+
+        current_user if respond_to?(:current_user, true)
       end
 
       def render_csrf_error(_error)
