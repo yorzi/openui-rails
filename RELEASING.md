@@ -16,6 +16,12 @@ The initial pending publisher was registered and successfully used for `0.1.0`
 on 2026-10-18. Future releases use the gem's Trusted Publisher. Update RubyGems
 trust before changing the repository, workflow filename, or environment.
 
+The documentation uses GitHub Pages with the GitHub Actions source. Its
+`github-pages` environment permits branch `main` and tags matching `v*`.
+Both rules are needed: a published release triggers the docs workflow with
+the release tag, even though the workflow checks out the default branch to
+build the stable and next documentation channels.
+
 Before each release, review [AUDIT.md](AUDIT.md), the dated changelog section,
 and the complete CI result for the exact commit. Preserve third-party notices.
 The gem excludes the upstream browser bundle; host applications that
