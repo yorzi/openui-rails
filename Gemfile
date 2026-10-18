@@ -18,6 +18,17 @@ gem "sqlite3"
 
 gem "propshaft"
 
+group :development, :test do
+  # The dummy app mirrors a real Rails 8 host: importmap + Stimulus, no build.
+  gem "importmap-rails"
+  gem "stimulus-rails"
+end
+
+group :test do
+  gem "capybara"
+  gem "selenium-webdriver"
+end
+
 # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
 gem "rubocop-rails-omakase", require: false
 
