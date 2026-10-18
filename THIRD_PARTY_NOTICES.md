@@ -26,11 +26,16 @@ The OpenUI repository is licensed MIT: "Copyright (c) 2011-2024 Thesys Inc."
 
 ## Transitive browser dependencies
 
-The official browser bundle inlines dependencies, including React 19. Those
-projects are MIT-licensed and their notices must ship with any redistributed
-build of the bundle. When you self-host the bundle you are responsible for
-including the complete third-party notices of the exact bundle revision you
-vendored.
+The official browser bundle inlines dependencies, including React 19. They do
+not all share one license. The pinned bundle's embedded notices identify
+`lucide-react` 0.562.0 as ISC-licensed. React and TanStack identify MIT licenses.
+Their notices must accompany any redistributed bundle.
+
+The fetch task preserves the upstream license and the bundle's embedded legal
+comments. These do not establish that all transitive notice obligations have
+been satisfied. Before redistribution, the owner must review the complete
+dependency/license inventory for the exact bundle. That review remains a
+publication gate; this document does not claim legal clearance.
 
 ## Naming
 

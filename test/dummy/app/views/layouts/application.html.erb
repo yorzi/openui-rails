@@ -21,6 +21,7 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app %>
     <%= javascript_importmap_tags %>
+    <%= openui_stylesheet_tag if ENV["OPENUI_REAL_RUNTIME_DIR"] %>
   </head>
 
   <body>

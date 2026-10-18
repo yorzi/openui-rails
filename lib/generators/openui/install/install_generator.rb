@@ -44,6 +44,8 @@ module OpenUI
       say "  2. Self-host the pinned runtime:"
       say "     bin/rails openui:runtime:fetch"
       say "  3. Register actions and an authorizer (see config/initializers/openui.rb)."
+      say "  4. Pin/register the Stimulus controllers and include openui_stylesheet_tag in your layout."
+      say "     The default bundle requires the exact openuiChatLibrary prompt/spec. See the gem README."
       say ""
     end
 

@@ -26,6 +26,27 @@ module OpenUI
           "#{configuration.local_runtime_path}/#{FILE_PREFIX}-#{version(configuration)}.js"
         end
 
+        def stylesheet_url(configuration = OpenUI::Rails.configuration)
+          return configuration.runtime_stylesheet_url if configuration.runtime_stylesheet_url
+          if external?(configuration)
+            raise ConfigurationError, "external runtime requires runtime_stylesheet_url"
+          end
+
+          "#{configuration.local_runtime_path}/#{FILE_PREFIX}-#{version(configuration)}.css"
+        end
+
+        def integrity(configuration = OpenUI::Rails.configuration)
+          configuration.runtime_integrity || (default_runtime?(configuration) ? RuntimePackage::FILES.fetch("package/dist/openui-bundle.min.js").last : nil)
+        end
+
+        def stylesheet_integrity(configuration = OpenUI::Rails.configuration)
+          configuration.runtime_stylesheet_integrity || (default_runtime?(configuration) ? RuntimePackage::FILES.fetch("package/dist/openui-styles.css").last : nil)
+        end
+
+        def default_runtime?(configuration)
+          !external?(configuration) && !configuration.runtime_url && version(configuration) == PINNED_VERSION
+        end
+
         def external?(configuration = OpenUI::Rails.configuration)
           configuration.runtime_assets == :external
         end
@@ -35,7 +56,7 @@ module OpenUI
           {
             openui_runtime_url: url(configuration),
             openui_runtime_version: version(configuration),
-            openui_runtime_integrity: configuration.runtime_integrity
+            openui_runtime_integrity: integrity(configuration)
           }.compact
         end
       end

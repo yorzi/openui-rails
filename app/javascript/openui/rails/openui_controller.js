@@ -48,9 +48,9 @@ export default class extends Controller {
     this.state ||= {
       source: this.initialResponse,
       streaming: this.streaming,
-      completed: false,
+      completed: this.element.dataset.openuiCompleted === "true",
       nextSequence: Number(this.element.dataset.openuiNextSequence || 0),
-      needsSnapshot: false,
+      needsSnapshot: this.element.dataset.openuiNeedsSnapshot === "true",
     }
 
     this.onEnvelope = (event) => this.applyEnvelope(event.detail)
@@ -63,6 +63,8 @@ export default class extends Controller {
       this.element.dataset.openuiResponse = this.state.source
       this.element.dataset.openuiStreaming = String(this.state.streaming)
       this.element.dataset.openuiNextSequence = String(this.state.nextSequence)
+      this.element.dataset.openuiCompleted = String(this.state.completed)
+      this.element.dataset.openuiNeedsSnapshot = String(this.state.needsSnapshot)
       this.disconnect()
     }
     document.addEventListener("turbo:before-cache", this.onBeforeCache)
@@ -85,6 +87,7 @@ export default class extends Controller {
   async renderRuntime(connection) {
     try {
       const runtime = await loadRuntime(this.runtimeUrl, this.runtimeIntegrity)
+      await this.verifyLibrary(runtime.openuiChatLibrary)
       if (connection !== this.connection || !this.element.isConnected || !this.mountPoint) return
       this.runtime = runtime
       this.render()
@@ -99,6 +102,7 @@ export default class extends Controller {
   render() {
     this.syncBusy()
     if (!this.runtime || !this.mountPoint || !this.connection) return
+    if (!this.withinByteLimit(this.state.source)) return
     const { React, createRoot, Renderer, openuiChatLibrary } = this.runtime
     if (!this.root) this.root = createRoot(this.mountPoint)
     this.root.render(
@@ -117,6 +121,27 @@ export default class extends Controller {
         onError: (error) => this.handleError(error),
       })
     )
+  }
+
+  async verifyLibrary(library) {
+    const expected = this.element.dataset.openuiLibraryFingerprint
+    if (!expected) return
+    if (typeof library?.toSpec !== "function" || !window.crypto?.subtle) {
+      throw Object.assign(new Error("Cannot verify the configured OpenUI library"), { code: "library_version_mismatch" })
+    }
+    const canonical = (value) => {
+      if (Array.isArray(value)) return value.map(canonical)
+      if (value !== null && typeof value === "object") {
+        return Object.fromEntries(Object.keys(value).sort().map((key) => [ key, canonical(value[key]) ]))
+      }
+      return value
+    }
+    const bytes = new TextEncoder().encode(JSON.stringify(canonical(library.toSpec())))
+    const digest = await window.crypto.subtle.digest("SHA-256", bytes)
+    const fingerprint = `sha256:${Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("")}`
+    if (fingerprint !== expected) {
+      throw Object.assign(new Error("Runtime library differs from the configured prompt/spec library"), { code: "library_version_mismatch" })
+    }
   }
 
   // --- Streaming -----------------------------------------------------------
@@ -218,7 +243,7 @@ export default class extends Controller {
         body: JSON.stringify(body),
       })
     } catch (error) {
-      this.handleError(error)
+      if (error.name !== "AbortError" || this.connection) this.handleError(error)
       throw error
     }
 
@@ -265,6 +290,12 @@ export default class extends Controller {
   }
 
   handleError(error) {
+    // Renderer#onError receives an array, including [] after successful parses.
+    if (Array.isArray(error)) {
+      if (error.length === 0) return
+      error = Object.assign(new Error(error.map((entry) => entry.message || String(entry)).join("; ")),
+        { code: "renderer_error" })
+    }
     console.error("[openui-rails]", error)
     this.dispatch("error", { surfaceId: this.surfaceId, message: error?.message, code: error?.code })
   }

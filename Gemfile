@@ -22,6 +22,7 @@ group :development, :test do
   # The dummy app mirrors a real Rails 8 host: importmap + Stimulus, no build.
   gem "importmap-rails"
   gem "stimulus-rails"
+  gem "turbo-rails", "~> 2.0"
 end
 
 group :test do
@@ -34,6 +35,7 @@ end
 
 # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
 gem "rubocop-rails-omakase", require: false
+gem "bundler-audit", "~> 0.9", require: false
 
 # Start debugger with binding.b [https://github.com/ruby/debug]
 # gem "debug", ">= 1.0.0"

@@ -2,3 +2,9 @@
 
 <%= openui_surface(surface: @surface, label: "Order details") %>
 <%= openui_surface(surface: @streaming_surface, stream: true) %>
+
+<%= link_to "Visit demo again", "/demo?visit=next" %>
+<div id="openui-envelope-inbox" hidden></div>
+<% if params[:transport] == "turbo" %>
+  <%= turbo_stream_from "openui-demo" %>
+<% end %>

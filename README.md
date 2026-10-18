@@ -41,7 +41,7 @@ source of truth for users, tenants and business objects.
 | Rails | `>= 8.0` (`< 9.0`) |
 | OpenUI browser runtime | pinned JS runtime, `@openuidev/browser-bundle` **0.2.1** |
 | OpenUI CLI (prompt generation) | pinned `@openuidev/cli` **0.6.0** |
-| RubyLLM | optional; adapter is exercised against a duck-typed double, no specific RubyLLM version is verified yet |
+| RubyLLM | optional; **2.1.1** verified through its real OpenAI chat-completions SSE parser with mocked HTTP |
 
 Unknown provider/version combinations are *unsupported*, not implicitly
 compatible. The JavaScript runtime is always referenced by an exact version;
@@ -96,15 +96,23 @@ OpenUI::Rails.configure do |config|
     actor&.surfaces&.find_by(id: surface_id)
   }
 
-  # Expose the actor to the actions endpoint (reads `current_user` by default).
+   # The engine inherits your ApplicationController, including authentication
+   # filters. It reads current_user by default; configure this for other auth.
   config.actor_resolver = ->(controller) { controller.current_user }
 end
 ```
 
 ### 2. Generate the library prompt and spec
 
-Use the **pinned** CLI, never `@latest`. The command writes the prompt and its
-`.spec.json` from one library revision so they cannot drift:
+The default browser bundle contains **only `openuiChatLibrary`**. Its prompt
+and spec must describe that exact library, not an unrelated custom library.
+The loaded bundle exposes `window.__OpenUI.openuiChatLibrary.prompt()` and
+`.toSpec()`. Save those outputs as the configured prompt text and JSON spec.
+The compatibility suite verifies this exact workflow against the pinned bundle.
+
+For a host-built custom library, use the pinned CLI and a matching host-built
+runtime that exposes the same `window.__OpenUI` contract. The CLI alone does
+not add components to the default browser bundle:
 
 ```bash
 npx --yes @openuidev/cli@0.6.0 generate ./src/library.ts \
@@ -121,18 +129,32 @@ Set `DO_NOT_TRACK=1` in CI as well as `--no-telemetry`.
 bin/rails openui:runtime:fetch   # vendors the bundle into public/openui (needs npm)
 ```
 
-It prints an optional SRI pin you can set as `config.runtime_integrity`. With
-`runtime_assets = :external` you must supply an explicit, exact-version
-`runtime_url` instead.
+The task checks the archive and exact JS/CSS/license files against committed
+checksums. It disables npm lifecycle scripts and never extracts archive paths
+to disk. The default runtime and stylesheet use pinned SRI hashes.
+
+Include the stylesheet once in your layout's `<head>`:
+
+```erb
+<%= openui_stylesheet_tag %>
+```
+
+For external assets, configure both `runtime_url` and `runtime_stylesheet_url`
+with exact-version URLs. Supply their integrity hashes too.
 
 ### 4. Register the Stimulus controllers
 
 The engine adds its `app/javascript` directory to the asset paths, so the
-controllers are importable as `openui/rails/...`:
+controllers are available to the asset pipeline. For importmap, add the pins:
+
+```ruby
+# config/importmap.rb
+pin_all_from OpenUI::Rails::Engine.root.join("app/javascript/openui"), under: "openui"
+```
 
 ```js
 // app/javascript/controllers/index.js
-import { application } from "../application"
+import { application } from "controllers/application"
 import OpenUIController from "openui/rails/openui_controller"
 import OpenUIEnvelopeController from "openui/rails/openui_envelope_controller"
 
@@ -169,13 +191,19 @@ OpenUI::Rails.actions.register "orders.refresh",
 ## Rendering surfaces
 
 ```ruby
-openui_surface(surface = nil, stream: false, dom_id: nil, initial_state: nil, **options)
+openui_surface(surface = nil, stream: false, dom_id: nil, initial_state: nil, label: nil, **options)
 ```
 
 `Surface.coerce` accepts a `Surface`, a plain `Hash`, or a host record. It
 emits a flat `data-openui-*` mount element; the Stimulus controller reads it and
 never receives a credential or a server secret. Recognised record methods:
 `id`, `version`, `library_version`, `response`, `context`, `message_id`.
+
+When a manifest is configured, the helper rejects an incompatible persisted
+`library_version`. Before mounting, the browser hashes the runtime library's
+`toSpec()` output and compares it with that manifest. A mismatch emits
+`openui:error` with `library_version_mismatch` and does not mount the renderer.
+Without a configured manifest, no library identity check is possible.
 
 ## Streaming
 
@@ -203,9 +231,14 @@ writer.finish.each { |envelope| broadcast(envelope) }
 
 The browser controller applies envelopes in order, ignores duplicates, and
 requests a canonical snapshot (`openui:snapshot-required` event) when it detects
-a sequence gap, so a partial UI is never executed. It emits
-`openui:envelope`, `openui:action`, `openui:state` and `openui:error` events;
-the host decides how to persist form state.
+a sequence gap. Deltas pause until a current snapshot arrives. Stale snapshots,
+duplicate terminal frames, malformed frames, and post-completion deltas cannot
+rewind or extend a completed response. The browser also enforces the byte limit.
+
+The controller **receives** `openui:envelope` and emits `openui:action`,
+`openui:state`, `openui:error`, and `openui:snapshot-required`. Your host must
+fetch and dispatch the authoritative snapshot on a gap or reconnect. The gem
+does not provide a persistence layer or snapshot HTTP endpoint.
 
 ### Transports
 
@@ -246,6 +279,11 @@ broadcaster.finish
   CSP relaxation. This transport requires `turbo-rails` in the host; it is
   looked up lazily and never a hard dependency of this Gem.
 
+  Subscribe with `<%= turbo_stream_from stream %>` and provide a dedicated
+  inbox, such as `<div id="openui-inbox" hidden></div>`. Pass that inbox's ID
+  as `target:`. Keep the inbox outside the React-owned subtree. Restrict stream
+  subscription and signed-stream access to authorized users in your host.
+
 - **Memory** (`:memory`) keeps every envelope in memory for tests and examples.
 
 The surface controller listens for `openui:envelope` on `document`, so any
@@ -262,6 +300,15 @@ post the same body to the single endpoint (`/openui-rails/actions` by default):
   "idempotency_key": "…", "confirmed": false }
 ```
 
+The official component event uses `{ type, params }`; the bridge maps it to
+`action` and `args`. A tool receives the handler's `value`, not the endpoint's
+result wrapper. Unknown tool names still fail the server allowlist.
+
+`confirmed: true` is a host-supplied acknowledgement, not cryptographic proof
+of human consent. It is never inferred from `params` or form state. Collect
+confirmation in trusted host UI. For high-risk operations, verify a signed,
+server-issued approval in the authorizer as well.
+
 The `Actions::Dispatcher` applies every gate **before any side effect**, in
 order:
 
@@ -272,6 +319,11 @@ order:
 5. surface revision is current (stale protection)
 6. authorizer allows it (required; fail closed)
 7. idempotency claim (duplicates never run twice, replay with different args is rejected)
+
+Idempotency keys are scoped to the server actor and tenant. The request digest
+also binds the action, surface, version, arguments, and confirmation flag.
+See [configuration](CONFIGURATION.md) for the shared-store contract and TTL
+limits. This is not an exactly-once guarantee across expiry or process restarts.
 
 Structured errors (JSON `{ error: { code, message } }`):
 
@@ -322,7 +374,10 @@ by class *name*, so no `RubyLLM` constant is referenced at load time.
 - You may pin subresource integrity via `config.runtime_integrity`; the fetch
   task prints the digest to use.
 - To use a strict Content Security Policy, add a nonce/host for the runtime
-  script you serve. The Gem does not inject inline scripts or styles.
+  script you serve. This bridge adds no inline scripts. The upstream renderer
+  does use inline styles and injects a loading `<style>` element. Strict
+  `style-src` policies need separate validation; script SRI is not proof of
+  strict-CSP compatibility.
 
 ## Accessibility
 
@@ -331,8 +386,9 @@ by class *name*, so no `RubyLLM` constant is referenced at load time.
 - Pass `label:` to `openui_surface` to expose the mount as a named `region`
   landmark; without a label no role is added, so unnamed containers are not
   invented.
-- The Gem injects no inline scripts or styles, and the rendered region is not
-  `aria-hidden`.
+- The mount is not `aria-hidden`. Automated checks cover named regions,
+  streaming busy states, and real keyboard activation. A human screen-reader
+  audit of generated content has not been performed.
 
 ## Security model
 
@@ -367,21 +423,14 @@ Report vulnerabilities privately per [`SECURITY.md`](SECURITY.md).
 
 Early development. The public API may change between `0.x` releases.
 
-Test status (honest, at `0.1.0`):
+The audit fixed defects that the original stub-only tests missed. See
+[AUDIT.md](AUDIT.md) for findings, verification evidence, and publication gates.
+CI runs unit/integration tests, deterministic browser tests, the real pinned
+OpenUI bundle, real Turbo/Action Cable delivery, a RubyLLM 2.1.1 SSE probe,
+dependency advisory checks, and a fresh-host test of the built gem.
 
-- **Unit + integration** (Minitest, dummy Rails app): `177 runs, 453
-  assertions, 0 failures` via `bundle exec bin/rails test`.
-- **Browser end-to-end** (Rails system tests, headless Chrome, a deterministic
-  stub runtime): `19 runs, 45 assertions, 0 failures` via
-  `bundle exec bin/rails test:system`. Covered: one React root per surface,
-  ordered delta accumulation, duplicate suppression, gap → snapshot request,
-  snapshot replacement, completion, error events, component-action and
-  browser-tool round-trips, destructive-action confirmation, mount
-  accessibility (`aria-busy` lifecycle and a named region), Turbo envelope
-  consumption, and unmount on disconnect.
-- **Still uncovered:** a real RubyLLM version, a real provider smoke run, and a
-  real `openui:runtime:fetch` (npm) run in CI — the browser suite stubs the
-  runtime, so the pinned bundle itself is not exercised.
+A paid live-provider run and human release/naming/license approval remain
+required before publication. No release has been published.
 
 ## Development
 
@@ -401,6 +450,9 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - [`CHANGELOG.md`](CHANGELOG.md)
 - [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`CONFIGURATION.md`](CONFIGURATION.md)
+- [`UPGRADING.md`](UPGRADING.md)
+- [`AUDIT.md`](AUDIT.md)
 - [`RELEASING.md`](RELEASING.md)
 - [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 - [`SECURITY.md`](SECURITY.md)

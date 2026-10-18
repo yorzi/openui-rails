@@ -10,7 +10,8 @@ class SurfaceRenderTest < ActionDispatch::IntegrationTest
     assert_select "div[data-controller='openui'].openui-surface" do
       assert_select "[data-openui-surface-id='surface-1']"
       assert_select "[data-openui-version='2']"
-      assert_select "[data-openui-library-version='sha256:abc123']"
+      fingerprint = OpenUI::Rails.configuration.library_fingerprint || "sha256:abc123"
+      assert_select "[data-openui-library-version='#{fingerprint}']"
       assert_select "[data-openui-streaming='false']"
       assert_select "[data-openui-actions-url='/openui-rails/actions']"
     end

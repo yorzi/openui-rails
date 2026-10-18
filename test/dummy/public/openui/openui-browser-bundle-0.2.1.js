@@ -103,6 +103,13 @@
     React,
     createRoot,
     Renderer: "Renderer",
-    openuiChatLibrary: { id: "stub-chat-library" },
+    openuiChatLibrary: {
+      id: "stub-chat-library",
+      toSpec: () => ({
+        name: "support", version: "1.2.0",
+        components: [ { name: "Card" }, { name: "Table" }, { name: "Chart" } ],
+        functions: [ { name: "Query" } ], actions: [ "refresh" ],
+      }),
+    },
   }
 })()

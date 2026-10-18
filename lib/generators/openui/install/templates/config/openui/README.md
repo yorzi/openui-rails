@@ -4,7 +4,12 @@ This directory holds the **prompt** and **spec** generated from the same,
 version-pinned component-library revision. Both must come from one revision so
 the model prompt and the browser component library cannot drift.
 
-Generate them with the *pinned* CLI (never `@latest`):
+The default browser bundle contains `openuiChatLibrary` only. For that bundle,
+save the exact outputs of `window.__OpenUI.openuiChatLibrary.prompt()` and
+`.toSpec()` as the prompt text and JSON spec. A custom library needs a matching
+host-built runtime; the CLI does not change the default browser bundle.
+
+For a custom library, use the pinned CLI (never `@latest`):
 
 ```bash
 npx --yes @openuidev/cli@0.6.0 generate ./src/library.ts --out config/openui/library.prompt.txt --no-telemetry

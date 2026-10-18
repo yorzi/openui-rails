@@ -83,4 +83,43 @@ class OpenUIStreamSafetySystemTest < ApplicationSystemTestCase
     assert_equal "stream_too_large", read_json("body", "data-openui-last-error")["code"]
     assert_equal before, source_of("surface-2")
   end
+
+  test "Turbo cache snapshots contain source and sequence state but no mounted React tree" do
+    dispatch(delta("surface-2", 0, "A"))
+    before = source_of("surface-2")
+    page.execute_script("document.dispatchEvent(new Event('turbo:before-cache'))")
+
+    assert_no_selector "[data-openui-rendered]", visible: :all
+    assert_equal before, find("[data-openui-surface-id='surface-2']", visible: :all)["data-openui-response"]
+    assert_equal "1", find("[data-openui-surface-id='surface-2']", visible: :all)["data-openui-next-sequence"]
+  end
+
+  test "a missing runtime reports an error and clears the busy state" do
+    page.execute_script(<<~JS)
+      const clone = document.querySelector("[data-openui-surface-id='surface-2']").cloneNode(false)
+      clone.id = "missing-runtime"
+      clone.dataset.openuiSurfaceId = "missing-runtime"
+      clone.dataset.openuiRuntimeUrl = "/missing-openui-runtime.js"
+      delete clone.dataset.openuiRuntimeIntegrity
+      document.body.appendChild(clone)
+    JS
+
+    assert_selector "body[data-openui-last-error]"
+    assert_selector "#missing-runtime[aria-busy='false']", visible: :all
+    assert_no_selector "#missing-runtime [data-openui-rendered]", visible: :all
+  end
+
+  test "a runtime library that differs from the configured spec never mounts" do
+    page.execute_script(<<~JS)
+      window.__OpenUI.openuiChatLibrary.toSpec = () => ({ components: [] })
+      const clone = document.querySelector("[data-openui-surface-id='surface-2']").cloneNode(false)
+      clone.id = "wrong-library"
+      clone.dataset.openuiSurfaceId = "wrong-library"
+      document.body.appendChild(clone)
+    JS
+
+    assert_selector "body[data-openui-last-error]"
+    assert_equal "library_version_mismatch", read_json("body", "data-openui-last-error")["code"]
+    assert_no_selector "#wrong-library [data-openui-rendered]", visible: :all
+  end
 end

@@ -4,7 +4,17 @@
 # small allowlisted actions and an authorizer so the action round-trip can be
 # exercised end to end without any host application.
 OpenUI::Rails.configure do |config|
+  # The deterministic renderer double is deliberately not the upstream asset.
+  if ENV["OPENUI_REAL_RUNTIME_DIR"]
+    config.runtime_url = "/audit-runtime/runtime.js"
+    config.runtime_stylesheet_url = "/audit-runtime/runtime.css"
+    config.runtime_integrity = OpenUI::Rails::RuntimePackage::FILES.fetch("package/dist/openui-bundle.min.js").last
+    config.runtime_stylesheet_integrity = OpenUI::Rails::RuntimePackage::FILES.fetch("package/dist/openui-styles.css").last
+  else
+    config.runtime_url = "/openui/openui-browser-bundle-0.2.1.js"
+  end
   config.library_spec_path = OpenUI::Rails::Engine.root.join("test/fixtures/files/library.spec.json")
+  config.library_spec_path = nil if ENV["OPENUI_REAL_RUNTIME_DIR"]
   config.prompt_path = OpenUI::Rails::Engine.root.join("test/fixtures/files/library.prompt.txt")
 
   config.actor_resolver = ->(_controller) { "e2e-actor" }
@@ -35,3 +45,6 @@ OpenUI::Rails.actions.register "do.destructive",
   confirmation: true,
   schema: {},
   handler: ->(_invocation) { { "deleted" => true } }
+
+OpenUI::Rails.actions.register "continue_conversation",
+  handler: ->(invocation) { invocation.args }

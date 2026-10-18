@@ -57,6 +57,14 @@ module OpenUI
         assert_includes html, 'role="region"'
         assert_includes html, 'aria-label="Order details"'
       end
+
+      test "refuses a persisted surface from an incompatible library" do
+        previous = OpenUI::Rails.configuration.library_spec_path
+        OpenUI::Rails.configure { |config| config.library_spec_path = file_fixture("library.spec.json") }
+        assert_raises(LibraryVersionError) { openui_surface(id: "s1", library_version: "sha256:wrong") }
+      ensure
+        OpenUI::Rails.configure { |config| config.library_spec_path = previous }
+      end
     end
   end
 end

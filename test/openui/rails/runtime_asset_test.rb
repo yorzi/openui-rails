@@ -38,6 +38,12 @@ module OpenUI
         assert data.key?(:openui_runtime_url)
       end
 
+      test "the pinned runtime and its stylesheet default to checked-in integrity" do
+        assert_match(/\Asha384-/, RuntimeAsset.mount_data[:openui_runtime_integrity])
+        assert_equal "/openui/openui-browser-bundle-0.2.1.css", RuntimeAsset.stylesheet_url
+        assert_match(/\Asha384-/, RuntimeAsset.stylesheet_integrity)
+      end
+
       test "external assets require an explicit pinned url" do
         OpenUI::Rails.configure do |config|
           config.runtime_assets = :external

@@ -6,6 +6,13 @@ module OpenUI
     # connects to. It renders no OpenUI UI itself: the browser runtime owns
     # rendering, Rails owns the opaque identifier and revision.
     module ViewHelper
+      # Include once in the host layout's head. The pinned bundle requires its
+      # stylesheet; it is not injected by JavaScript or repeated per surface.
+      def openui_stylesheet_tag
+        stylesheet_link_tag RuntimeAsset.stylesheet_url,
+          integrity: RuntimeAsset.stylesheet_integrity, crossorigin: "anonymous"
+      end
+
       # Render a mount element for a surface.
       #
       # @param surface [Surface, #id, nil] a Surface, a host record, or nil when
@@ -18,11 +25,16 @@ module OpenUI
       def openui_surface(surface = nil, stream: false, dom_id: nil, initial_state: nil, label: nil, **options)
         surface ||= options.delete(:surface)
         surface = Surface.coerce(surface, **options)
+        fingerprint = OpenUI::Rails.configuration.library_fingerprint
+        if fingerprint && surface.library_version && fingerprint != surface.library_version
+          raise LibraryVersionError, "surface targets a different library; regenerate it with the configured library"
+        end
         data = surface.to_mount_data(
           stream: stream,
           actions_endpoint: OpenUI::Rails.configuration.actions_endpoint,
           initial_state: initial_state
         ).merge(RuntimeAsset.mount_data)
+        data[:openui_library_fingerprint] = fingerprint if fingerprint
 
         # `aria-busy` tells assistive tech the region is still being updated, so
         # a streaming surface is not announced mid-flight. The controller keeps
