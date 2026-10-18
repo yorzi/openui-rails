@@ -1,11 +1,32 @@
 name: CI
 
 on:
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
   pull_request:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - name: Check resolved Ruby dependencies against ruby-advisory-db
+        run: bundle exec bundler-audit check --update
+
   lint:
     runs-on: ubuntu-latest
     env:
@@ -13,16 +34,18 @@ jobs:
       RUBOCOP_CACHE_ROOT: tmp/rubocop
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
 
       - name: Prepare RuboCop cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         env:
           DEPENDENCIES_HASH: ${{ hashFiles('**/.rubocop.yml', '**/.rubocop_todo.yml', 'Gemfile.lock') }}
         with:
@@ -46,10 +69,12 @@ jobs:
       RAILS_VERSION: ${{ matrix.rails }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -60,8 +85,11 @@ jobs:
       - name: Run tests
         run: bin/rails test
 
+      - name: Verify RubyLLM 2.1.1 against deterministic provider SSE
+        run: bundle exec ruby -Itest test/compatibility/ruby_llm_smoke.rb
+
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: screenshots-ruby${{ matrix.ruby }}-rails${{ matrix.rails }}
@@ -76,10 +104,12 @@ jobs:
       RAILS_ENV: test
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
@@ -90,12 +120,20 @@ jobs:
       - name: Run browser (system) tests
         run: bin/rails test:system
 
+      - name: Fetch the real checksum-locked runtime
+        run: bundle exec rake "app:openui:runtime:fetch[$RUNNER_TEMP/openui-runtime]"
+
+      - name: Verify the real runtime, actions, tools, and keyboard activation
+        env:
+          OPENUI_REAL_RUNTIME_DIR: ${{ runner.temp }}/openui-runtime
+        run: bundle exec ruby -Itest test/compatibility/runtime_smoke.rb
+
       - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: system-screenshots
-          path: ${{ github.workspace }}/tmp/screenshots
+          path: ${{ github.workspace }}/test/dummy/tmp/screenshots
           if-no-files-found: ignore
 
   build:
@@ -104,10 +142,12 @@ jobs:
       RUBY_VERSION: ruby-3.3
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@651ff0d62c5c79bed6d53ec518387aae20e72c1a # v1
         with:
           ruby-version: ${{ env.RUBY_VERSION }}
           bundler-cache: true
@@ -122,10 +162,12 @@ jobs:
             lib/openui/rails.rb \
             lib/openui/rails/engine.rb \
             lib/openui/rails/stream/broadcaster.rb \
+            lib/openui/rails/runtime_package.rb \
             app/controllers/openui/rails/actions_controller.rb \
             app/javascript/openui/rails/openui_controller.js \
             app/javascript/openui/rails/openui_envelope_controller.js \
-            LICENSE README.md CHANGELOG.md THIRD_PARTY_NOTICES.md; do
+            LICENSE README.md CHANGELOG.md THIRD_PARTY_NOTICES.md \
+            CONFIGURATION.md UPGRADING.md SECURITY.md; do
             grep -qxF -- "- $expected" packaged_files.txt \
               || { echo "missing from gem: $expected"; exit 1; }
           done
@@ -133,4 +175,7 @@ jobs:
       - name: Install and require the built gem
         run: |
           gem install ./openui-rails-*.gem --no-document
-          ruby -e 'require "rails"; require "openui/rails"; puts "openui-rails #{OpenUI::Rails::VERSION}"'
+          ruby -e 'require "openui/rails"; puts "openui-rails #{OpenUI::Rails::VERSION}"'
+
+      - name: Generate and boot a fresh Rails host from the built artifact
+        run: bundle exec ruby bin/smoke-package openui-rails-*.gem

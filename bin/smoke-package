@@ -1,0 +1,66 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Consumer smoke test: generate a fresh host and load only the built artifact,
+# not the engine checkout. All generated files stay in a temporary directory.
+require "bundler/setup"
+require "rubygems/package"
+require "tmpdir"
+require "open3"
+
+archive = File.expand_path(ARGV.fetch(0))
+repository = File.expand_path("..", __dir__)
+package = Gem::Package.new(archive)
+
+def run!(*command, directory:, environment: {})
+  output, error, status = Open3.capture3(environment, *command, chdir: directory)
+  abort "#{command.join(' ')} failed:\n#{output}\n#{error}" unless status.success?
+  output
+end
+
+Dir.mktmpdir("openui-package-smoke") do |directory|
+  extracted = File.join(directory, "artifact")
+  package.extract_files(extracted)
+  File.write(File.join(extracted, "openui-rails.gemspec"), package.spec.to_ruby)
+  host = File.join(directory, "host")
+  run!("bundle", "exec", "rails", "new", host, "--minimal", "--skip-bundle", "--skip-git", directory: directory)
+  File.write(File.join(host, "Gemfile"), <<~GEMFILE)
+    source "https://rubygems.org"
+    gem "rails", "#{Gem.loaded_specs.fetch('rails').version}"
+    gem "openui-rails", path: #{extracted.inspect}
+    gem "propshaft"
+    gem "sqlite3"
+  GEMFILE
+
+  Bundler.with_unbundled_env do
+    environment = { "BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "RAILS_ENV" => "test" }
+    run!("bundle", "install", "--local", directory: host, environment: environment)
+    run!("bundle", "exec", "ruby", "bin/rails", "generate", "openui:install", directory: host, environment: environment)
+    abort "generator did not mount the engine" unless File.read(File.join(host, "config/routes.rb")).include?("OpenUI::Rails::Engine")
+
+    %w[library.spec.json library.prompt.txt].each do |name|
+      File.write(File.join(host, "config/openui", name), File.read(File.join(repository, "test/fixtures/files", name)))
+    end
+    File.write(File.join(host, "app/controllers/smoke_controller.rb"), <<~RUBY)
+      class SmokeController < ApplicationController
+        def show
+          render inline: '<%= openui_surface(id: "installed-gem", label: "Installed gem") %>'
+        end
+      end
+    RUBY
+    File.open(File.join(host, "config/routes.rb"), "a") do |file|
+      file.puts 'Rails.application.routes.draw { get "/smoke", to: "smoke#show" }'
+    end
+    File.write(File.join(host, "probe.rb"), <<~RUBY)
+      require_relative "config/environment"
+      abort "loaded source checkout instead of artifact" unless Gem.loaded_specs.fetch("openui-rails").full_gem_path == #{extracted.inspect}
+      Rails.application.eager_load!
+      response = Rack::MockRequest.new(Rails.application).get("/smoke")
+      abort "host response failed: \#{response.status} \#{response.body}" unless response.status == 200
+      abort "helper did not render" unless response.body.include?('data-openui-surface-id="installed-gem"')
+      abort "host auth inheritance missing" unless OpenUI::Rails::ActionsController < ::ApplicationController
+      puts "Built gem: fresh Rails host, install generator, eager load, and HTTP render passed"
+    RUBY
+    puts run!("bundle", "exec", "ruby", "probe.rb", directory: host, environment: environment)
+  end
+end

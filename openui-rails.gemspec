@@ -26,10 +26,14 @@ Gem::Specification.new do |spec|
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
+  spec.metadata["documentation_uri"] = "#{spec.homepage}/blob/main/README.md"
   spec.metadata["rubygems_mfa_required"] = "true"
+  spec.metadata["allowed_push_host"] = "https://rubygems.org"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    Dir["{app,config,lib}/**/*", "LICENSE", "README.md", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md"]
+    Dir["{app,config,lib}/**/*", "LICENSE", "README.md", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md",
+      "CONFIGURATION.md", "UPGRADING.md", "SECURITY.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
+      "RELEASING.md", "AUDIT.md"].select { |path| File.file?(path) }
   end
   spec.require_paths = [ "lib" ]
 

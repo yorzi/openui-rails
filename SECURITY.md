@@ -12,9 +12,9 @@ coordinate a fix and disclosure timeline with you.
 `openui-rails` treats model output as untrusted UI DSL and keeps Rails
 authoritative. The controls this project is responsible for:
 
-- **Component allowlist.** The browser runtime can only resolve components and
-  actions the pinned library declares; unknown components fall back rather than
-  executing.
+- **Component allowlist.** The browser runtime resolves its declared library.
+  Unknown components report renderer errors, not arbitrary code execution.
+  The host must display a fallback when it receives `openui:error`.
 - **Single action path.** Component `onAction` and browser `toolProvider`
   `Query()`/`Mutation()` calls both post to one endpoint and pass the same
   gates: allowlist, schema, confirmation, stale-surface, authorizer and
@@ -24,11 +24,21 @@ authoritative. The controls this project is responsible for:
 - **CSRF and tenancy.** The endpoint relies on Rails' forgery protection and on
   the host resolving a surface id scoped to the actor/tenant; an unresolvable
   surface is treated as unauthorized.
-- **Untrusted context.** Client-sent form state is never treated as an
-  Active Record write confirmation, and `]]>openui:` markers are stripped
-  before a stored message is sent back to a model.
-- **Pinned assets.** The JS runtime is version-pinned and optionally integrity
-  checked; the prompt CLI is pinned and runs with telemetry disabled.
+- **Untrusted context.** Client form state does not confer authorization.
+  The host must call `Message.strip` before it sends stored framed content to a
+  model. `confirmed: true` is an acknowledgement, not signed proof of consent.
+- **Scoped replays.** Actor/tenant identity scopes idempotency keys. The full
+  validated request binds a replay. TTL expiry and process restarts remain host
+  concerns; irreversible operations need database-level safeguards.
+- **Pinned assets.** The default JS/CSS assets have committed checksum/SRI pins.
+  The fetch task disables npm lifecycle scripts and preserves upstream notices.
+  Custom runtimes require explicit pins and separate review.
+- **Library identity.** With a configured manifest, the browser checks the actual
+  runtime spec before mounting. Without a manifest, that check is unavailable.
+
+The browser bundle is trusted third-party page code, not a sandbox. Hosts must
+set request/rate/provider budgets and validate CSP against upstream inline
+styles. See [AUDIT.md](AUDIT.md) for verified scope and remaining release gates.
 
 ## Out of scope
 

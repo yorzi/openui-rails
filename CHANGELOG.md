@@ -6,6 +6,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed during pre-publication audit
+
+- Scope idempotency to server actor/tenant identity and bind replay digests to
+  the full request. Distinguish pending claims from completed nil results and
+  fence expired writers with claim tokens.
+- Preserve host authentication filters and default current-user resolution.
+- Canonicalize and copy JSON input before validation/fingerprinting; prevent
+  mutable submissions, envelopes, surfaces, and manifests.
+- Enforce stream terminal states, completion ordering, snapshot watermarks,
+  browser byte limits, and Turbo cache restoration.
+- Use the real OpenUI `{type, params}` action contract, avoid false MCP-client
+  detection, return raw tool values, and ignore empty renderer-error arrays.
+- Verify configured library fingerprints against the actual runtime `toSpec()`.
+- Fetch exact checksum-locked JS/CSS/license files without npm lifecycle scripts.
+  Add `openui_stylesheet_tag` and default integrity pins.
+- Correct RubyLLM's block-only `complete` call and verify 2.1.1 with real SSE parsing.
+- Align message framing edge cases with lang-core 1.0.1.
+- Require full CI and explicit manual approval before publication; create a
+  genuine draft GitHub release. See `UPGRADING.md` for pre-release changes.
+
 ### Added
 
 - Mountable Rails engine under the `OpenUI::Rails` namespace with the
