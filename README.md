@@ -32,18 +32,20 @@ The runtime-fetch task also needs npm. RubyLLM is optional.
 
 ```ruby
 # Gemfile
-gem "openui-rails", "~> 0.1.0"
+gem "openui-rails", "~> 0.2.0"
 ```
 
 ```sh
 bundle install
 bin/rails generate openui:install
 bin/rails openui:runtime:fetch
+bin/rails openui:library:prepare
+bin/rails openui:doctor
 ```
 
 Follow [Getting Started](https://openui-rails.wangyaodi.com/getting-started/) to
-prepare the matching library files, register the Stimulus controllers, and include
-the stylesheet. After setup, render a surface from an ERB view:
+register the Stimulus controllers and include the stylesheet. After setup,
+render a surface from an ERB view:
 
 ```erb
 <%= openui_surface(
@@ -63,7 +65,8 @@ The documentation site contains the full guides and API reference:
 - [RubyLLM](https://openui-rails.wangyaodi.com/ruby-llm/) and [production setup](https://openui-rails.wangyaodi.com/production/)
 - [Upgrading](https://openui-rails.wangyaodi.com/upgrading/) and [API reference](https://openui-rails.wangyaodi.com/api-reference/)
 
-Version `0.1.0` is released; `0.2.0` is an unpublished local candidate. The API may change during `0.x`; see the
+Version `0.2.0` adds default-library preparation and setup diagnostics.
+The API may change during `0.x`; see the
 [changelog](CHANGELOG.md) and the proposed [path to 1.0](ROADMAP.md).
 The site's stable channel follows the latest release; [/next/](https://openui-rails.wangyaodi.com/next/)
 follows `main`.

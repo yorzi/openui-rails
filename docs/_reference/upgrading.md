@@ -12,12 +12,12 @@ description: Move an OpenUI Rails application between documented gem releases wi
 
 After reading this guide, you will know:
 
-* How to try the next version from an application using 0.1.0.
+* How to upgrade an application from 0.1.0.
 * How to preserve existing library files and host authorization.
 
 ## Upgrade from 0.1.0
 
-{% if site.docs_unreleased %}Version `{{ site.version }}` is not published. To test the default branch, use a Git dependency:
+{% if site.docs_unreleased %}This channel follows development on `main`. To test the default branch, use a Git dependency:
 
 ```ruby
 gem "openui-rails", git: "https://github.com/yorzi/openui-rails", branch: "main"

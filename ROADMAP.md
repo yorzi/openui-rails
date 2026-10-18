@@ -1,8 +1,9 @@
 # Roadmap to 1.0
 
-Proposed on 2026-10-18 against the `0.1.0` implementation. Only `0.1.0` is
-released. The `0.2.0` implementation is locally validated and remains unpublished;
-see [its validation record](VALIDATION_0_2.md). Milestones after 0.2 are proposals,
+Proposed on 2026-10-18 against the `0.1.0` implementation. The `0.2.0` milestone
+is implemented; see [its local validation record](VALIDATION_0_2.md) and
+[GitHub Releases](https://github.com/yorzi/openui-rails/releases) for publication.
+Milestones after 0.2 are proposals,
 not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
 

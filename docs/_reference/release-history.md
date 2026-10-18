@@ -15,7 +15,7 @@ Use the release notes to review changes before updating your application. Each r
 
 | Version | Date | Status |
 | --- | --- | --- |
-| {{ site.version }} | Unreleased | [Local development candidate]({% link _getting_started/whats-new-in-0-2.md %}) |
+| {{ site.version }} | 2026-10-18 | [Default setup and diagnostics]({% link _getting_started/whats-new-in-0-2.md %}) |
 | 0.1.0 | 2026-10-18 | [Initial release]({% link _reference/whats-new.md %}) |
 
 For published release notes, see [GitHub Releases](https://github.com/yorzi/openui-rails/releases). For application migration guidance, see [Upgrading]({% link _reference/upgrading.md %}).

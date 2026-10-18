@@ -36,4 +36,4 @@ fingerprint is a visible failure rather than a silent re-render.
 
 Set `DO_NOT_TRACK=1` in CI as well as `--no-telemetry`.
 
-Full guides: https://openui-rails.wangyaodi.com/next/library-contract/
+Full guides: https://openui-rails.wangyaodi.com/library-contract/

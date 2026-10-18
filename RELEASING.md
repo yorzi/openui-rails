@@ -1,7 +1,7 @@
 # Releasing openui-rails
 
-The owner authorized the initial `0.1.0` release on 2026-10-18. This is an
-unofficial integration, not a Thesys product. Publish only a tag whose complete
+This is an unofficial integration, not a Thesys product. Obtain owner
+authorization to push and publish each release. Publish only a tag whose complete
 CI suite and release metadata checks pass.
 
 ## Publishing configuration
@@ -46,7 +46,8 @@ and a 16-token output cap. See [AUDIT.md](AUDIT.md) for the result and limits.
    RELEASE_TAG=vx.y.z ruby bin/check-release
    ```
 
-5. Commit the version and notes.
+5. Commit and push the version and notes to `main`. Wait for the complete CI
+   suite to pass for that exact commit before tagging.
 6. Create the release tag:
 
    ```bash
@@ -79,8 +80,11 @@ write permission then creates a **draft** GitHub release.
 The draft includes the verified gem, its SHA-256 checksum, and the dated
 changelog section. Verify the RubyGems version and review that draft before
 making it public.
-`CHANGELOG.md` now contains the dated `0.1.0` notes, and
-`RELEASE_TAG=v0.1.0 ruby bin/check-release` accepts the release metadata.
+Publishing the GitHub release triggers the versioned documentation deployment.
+Verify the stable site names the released version, `/next/` follows `main`,
+and both channels include the matching setup and upgrading guides. Record
+the workflow, published gem checksum, and hosted verification in a dated
+release record. Keep earlier local validation evidence unchanged.
 
 ## Recovery
 

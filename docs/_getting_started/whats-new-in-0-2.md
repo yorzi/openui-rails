@@ -15,9 +15,8 @@ After reading this guide, you will know:
 * How to initialize the default library without browser-console copying.
 * How to find missing local setup steps without running actions.
 
-Version `{{ site.version }}` is a local development candidate and is not
-published. See [Release History]({% link _reference/release-history.md %}) for
-published versions.
+Version `{{ site.version }}` adds two setup tasks. See
+[Release History]({% link _reference/release-history.md %}) for release dates.
 
 ## Prepare the default library
 

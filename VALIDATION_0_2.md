@@ -1,8 +1,11 @@
 # 0.2.0 local validation
 
-Date: 2026-10-18. Status: the planned 0.2 setup features are implemented and
-locally validated. Version 0.2.0 is an unpublished candidate. No tag, push,
-GitHub deployment, or RubyGems publication is part of this work.
+Date: 2026-10-18. This historical record covers the local candidate before
+publication. The planned 0.2 setup features were implemented and locally
+validated. The results and artifact checksum below describe that candidate,
+not a subsequently published artifact. See
+[GitHub Releases](https://github.com/yorzi/openui-rails/releases/tag/v0.2.0)
+for the released artifact and publication status.
 
 ## Delivered scope
 
@@ -37,10 +40,10 @@ All counts below exclude the separate intentional failure-artifact probe.
 | Documentation | Stable 0.1 and next candidate built; 18 guides linted with no errors; 1,208 local guide links and anchors passed. |
 | Ruby advisory check | Refreshed database at `fa2295251efb3b0d1a300e5ce8ad700ff1f1b485`; no known vulnerabilities found in the current bundle. |
 
-The docs linter reports two expected warnings: the candidate version differs
-from tag v0.1.0, and `released: false` coexists with that release tag. Keep the
-candidate unpublished; do not change those values merely to silence warnings.
-The modified CI workflow parses as YAML; its GitHub execution remains unverified.
+The docs linter reported two expected warnings: the candidate version differed
+from tag v0.1.0, and `released: false` coexisted with that release tag.
+These warnings described the pre-release metadata at validation time.
+The modified CI workflow parsed as YAML; its GitHub execution was not yet verified.
 
 ## Reproduce and inspect
 
@@ -64,7 +67,7 @@ The temporary host uses the developer's cached dependencies and the extracted
 built gem. Its prompt/spec come from that gem, not checkout fixtures. This is
 not a clean online dependency resolution or external adoption test.
 
-## Remaining release work
+## Release handoff at validation time
 
 Ruby 3.2 and 3.4 were not run locally. After an authorized push, require the
 configured GitHub matrix and browser/package jobs to pass for the exact
