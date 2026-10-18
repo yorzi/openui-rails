@@ -31,7 +31,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   turns a Turbo Stream append into an `openui:envelope` event without inline
   script.
 - Browser (system) test suite: lifecycle, stream ordering/duplicate/gap,
-  snapshot recovery, completion/error, and action/tool round-trips.
+  snapshot recovery, completion/error, action/tool round-trips, destructive
+  confirmation, and mount accessibility (`aria-busy` lifecycle, named region).
+- `aria-busy` on the mount element tracks the streaming state, and an optional
+  `label:` exposes the mount as a named `region` landmark.
 - Tag-driven release workflow and `RELEASING.md`.
 
 [Unreleased]: https://github.com/yorzi/openui-rails/commits/main

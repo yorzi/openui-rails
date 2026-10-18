@@ -151,6 +151,10 @@ for the Turbo Streams transport (below).
 <%= openui_surface(surface: @surface, stream: true) %>
 ```
 
+Pass `label: "Order details"` to expose the mount as a named `region` landmark.
+A streaming surface carries `aria-busy="true"` until it completes, so assistive
+technology waits for the region to settle instead of announcing each delta.
+
 ### 6. Register actions
 
 ```ruby
@@ -320,6 +324,16 @@ by class *name*, so no `RubyLLM` constant is referenced at load time.
 - To use a strict Content Security Policy, add a nonce/host for the runtime
   script you serve. The Gem does not inject inline scripts or styles.
 
+## Accessibility
+
+- A streaming surface is marked `aria-busy="true"` and flips to `"false"` when
+  it completes (or errors), so a screen reader waits for the region to settle.
+- Pass `label:` to `openui_surface` to expose the mount as a named `region`
+  landmark; without a label no role is added, so unnamed containers are not
+  invented.
+- The Gem injects no inline scripts or styles, and the rendered region is not
+  `aria-hidden`.
+
 ## Security model
 
 Model output is untrusted UI DSL. The controls this Gem is responsible for:
@@ -355,15 +369,16 @@ Early development. The public API may change between `0.x` releases.
 
 Test status (honest, at `0.1.0`):
 
-- **Unit + integration** (Minitest, dummy Rails app): `174 runs, 443
+- **Unit + integration** (Minitest, dummy Rails app): `177 runs, 453
   assertions, 0 failures` via `bundle exec bin/rails test`.
 - **Browser end-to-end** (Rails system tests, headless Chrome, a deterministic
-  stub runtime): `12 runs, 30 assertions, 0 failures` via
+  stub runtime): `19 runs, 45 assertions, 0 failures` via
   `bundle exec bin/rails test:system`. Covered: one React root per surface,
   ordered delta accumulation, duplicate suppression, gap → snapshot request,
   snapshot replacement, completion, error events, component-action and
-  browser-tool round-trips, Turbo envelope consumption, and unmount on
-  disconnect.
+  browser-tool round-trips, destructive-action confirmation, mount
+  accessibility (`aria-busy` lifecycle and a named region), Turbo envelope
+  consumption, and unmount on disconnect.
 - **Still uncovered:** a real RubyLLM version, a real provider smoke run, and a
   real `openui:runtime:fetch` (npm) run in CI — the browser suite stubs the
   runtime, so the pinned bundle itself is not exercised.

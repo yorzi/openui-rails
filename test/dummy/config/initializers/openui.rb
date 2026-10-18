@@ -27,3 +27,11 @@ OpenUI::Rails.actions.register "Lookup",
   description: "Test browser tool",
   schema: { "q" => String },
   handler: ->(invocation) { { "found" => invocation.args["q"] } }
+
+# Requires explicit confirmation: the dispatcher rejects it unless the browser
+# submits `confirmed: true` (see the confirmation system test).
+OpenUI::Rails.actions.register "do.destructive",
+  description: "Test confirmation gate",
+  confirmation: true,
+  schema: {},
+  handler: ->(_invocation) { { "deleted" => true } }

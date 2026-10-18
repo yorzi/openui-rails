@@ -58,6 +58,7 @@ export default class extends Controller {
     // envelopes for other message ids, so a shared document listener is safe.
     document.addEventListener("openui:envelope", this.onEnvelope)
 
+    this.syncBusy()
     this.renderRuntime()
   }
 
@@ -83,6 +84,7 @@ export default class extends Controller {
 
   render() {
     const { React, createRoot, Renderer, openuiChatLibrary } = this.runtime
+    this.syncBusy()
     if (!this.root) this.root = createRoot(this.mountPoint)
     this.root.render(
       React.createElement(Renderer, {
@@ -115,6 +117,10 @@ export default class extends Controller {
         this.state.completed = true
         return this.render()
       case "openui.error":
+        // A stream that ends in error is no longer busy, so assistive tech can
+        // read whatever rendered before the failure.
+        this.state.streaming = false
+        this.syncBusy()
         return this.handleError(Object.assign(new Error(envelope.message || "stream error"), {
           code: envelope.code,
         }))
@@ -210,6 +216,12 @@ export default class extends Controller {
   }
 
   // --- Helpers -------------------------------------------------------------
+
+  // Mirror the streaming state onto `aria-busy` so a screen reader waits for a
+  // streaming region to settle instead of announcing each delta.
+  syncBusy() {
+    this.element.setAttribute("aria-busy", this.state.streaming ? "true" : "false")
+  }
 
   handleError(error) {
     console.error("[openui-rails]", error)

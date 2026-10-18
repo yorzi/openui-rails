@@ -54,6 +54,26 @@
     })
     wrapper.appendChild(toolButton)
 
+    // A destructive action submitted without confirmation, and the same action
+    // submitted after the host collected confirmation.
+    const unconfirmedButton = document.createElement("button")
+    unconfirmedButton.type = "button"
+    unconfirmedButton.setAttribute("data-openui-action-unconfirmed", "do.destructive")
+    unconfirmedButton.textContent = "delete (unconfirmed)"
+    unconfirmedButton.addEventListener("click", () => {
+      if (props.onAction) props.onAction({ action: "do.destructive", args: {} })
+    })
+    wrapper.appendChild(unconfirmedButton)
+
+    const confirmedButton = document.createElement("button")
+    confirmedButton.type = "button"
+    confirmedButton.setAttribute("data-openui-action-confirmed", "do.destructive")
+    confirmedButton.textContent = "delete (confirmed)"
+    confirmedButton.addEventListener("click", () => {
+      if (props.onAction) props.onAction({ action: "do.destructive", args: {}, confirmed: true })
+    })
+    wrapper.appendChild(confirmedButton)
+
     container.appendChild(wrapper)
   }
 

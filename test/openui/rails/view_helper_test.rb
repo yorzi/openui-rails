@@ -37,6 +37,26 @@ module OpenUI
 
         assert_includes html, 'id="custom-mount"'
       end
+
+      test "marks a settled surface as not busy for assistive tech" do
+        html = openui_surface(id: "s1", version: 1)
+
+        assert_includes html, 'aria-busy="false"'
+        refute_includes html, 'role="region"'
+      end
+
+      test "marks a streaming surface as busy" do
+        html = openui_surface(id: "s1", version: 1, stream: true)
+
+        assert_includes html, 'aria-busy="true"'
+      end
+
+      test "exposes a labelled surface as a named region" do
+        html = openui_surface(id: "s1", version: 1, label: "Order details")
+
+        assert_includes html, 'role="region"'
+        assert_includes html, 'aria-label="Order details"'
+      end
     end
   end
 end
