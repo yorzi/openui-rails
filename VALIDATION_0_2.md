@@ -4,8 +4,8 @@ Date: 2026-10-18. This historical record covers the local candidate before
 publication. The planned 0.2 setup features were implemented and locally
 validated. The results and artifact checksum below describe that candidate,
 not a subsequently published artifact. See
-[GitHub Releases](https://github.com/yorzi/openui-rails/releases/tag/v0.2.0)
-for the released artifact and publication status.
+[the publication record](RELEASE_0_2.md) for the released artifact, remote CI,
+and hosted documentation verification.
 
 ## Delivered scope
 

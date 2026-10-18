@@ -72,7 +72,7 @@ The site's stable channel follows the latest release; [/next/](https://openui-ra
 follows `main`.
 
 For repository work, use [Contributing](CONTRIBUTING.md),
-[Releasing](RELEASING.md), and the dated [0.1.0 audit](AUDIT.md).
+[Releasing](RELEASING.md), and the [0.2.0 release record](RELEASE_0_2.md).
 Report vulnerabilities through the [security policy](SECURITY.md).
 
 ## License

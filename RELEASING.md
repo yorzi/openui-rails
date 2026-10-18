@@ -86,6 +86,11 @@ and both channels include the matching setup and upgrading guides. Record
 the workflow, published gem checksum, and hosted verification in a dated
 release record. Keep earlier local validation evidence unchanged.
 
+A successful Pages job alone does not prove the hosted version changed.
+If the stable site still serves the previous release, compare its contents with
+the build log. Push a documentation update or rerun the docs workflow, then
+verify the actual installation command and version selector again.
+
 ## Recovery
 
 Prefer a patch release for a defect. If a published version is unsafe, the owner
