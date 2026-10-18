@@ -49,6 +49,7 @@ module OpenUI
       test "accepts a usable custom idempotency store" do
         store = Object.new
         def store.claim(*) = true
+        def store.record(*, **) = true
 
         OpenUI::Rails.configure { |c| c.idempotency_store = store }
 

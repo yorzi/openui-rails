@@ -38,7 +38,7 @@ module OpenUI
             schema: Schema.from(schema),
             confirmation: confirmation ? true : false,
             description: description
-          )
+          ).freeze
 
           @mutex.synchronize { @definitions[definition.name] = definition }
           definition
@@ -49,6 +49,8 @@ module OpenUI
           raise UnknownActionError, "unknown action #{name.inspect}" if definition.nil?
 
           definition
+        rescue ConfigurationError => error
+          raise InvalidActionError, error.message
         end
 
         def registered?(name)

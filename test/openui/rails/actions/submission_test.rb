@@ -70,6 +70,31 @@ module OpenUI
           assert_equal a.args_digest, b.args_digest
           refute_equal a.args_digest, c.args_digest
         end
+
+        test "nested symbol and string args produce the same canonical digest" do
+          a = Submission.parse(VALID.merge("args" => { outer: { b: 2, a: 1 } }))
+          b = Submission.parse(VALID.merge("args" => { "outer" => { "a" => 1, "b" => 2 } }))
+          c = Submission.parse(VALID.merge("args" => { outer: { b: 3, a: 1 } }))
+
+          assert_equal a.args_digest, b.args_digest
+          refute_equal a.args_digest, c.args_digest
+          assert_equal({ "outer" => { "a" => 1, "b" => 2 } }, a.args)
+        end
+
+        test "copies and deeply freezes the submission" do
+          args = { "nested" => [ +"original" ] }
+          submission = Submission.parse(VALID.merge("args" => args))
+          args["nested"].first.replace("changed")
+
+          assert_equal "original", submission.args["nested"].first
+          assert_raises(FrozenError) { submission.args["nested"] << "other" }
+          assert_raises(FrozenError) { submission.action.replace("other") }
+        end
+
+        test "false is not an argument object or explicit confirmation" do
+          assert_raises(InvalidActionError) { Submission.parse(VALID.merge("args" => false)) }
+          refute Submission.new(**VALID.transform_keys(&:to_sym), confirmed: "true").confirmed?
+        end
       end
     end
   end

@@ -160,6 +160,56 @@ module OpenUI
 
           assert_equal 2, @calls.size
         end
+
+        test "a key cannot replay a result from another action or surface" do
+          register("orders.refresh") { "private refresh result" }
+          register("orders.cancel") { @calls << :cancelled }
+          subject = dispatcher
+          subject.call(payload)
+
+          assert_raises(ReplayError) { subject.call(payload(action: "orders.cancel")) }
+          assert_raises(ReplayError) { subject.call(payload(surface_id: "other")) }
+          assert_empty @calls
+        end
+
+        test "different actors never share cached results" do
+          register("orders.refresh") { |invocation| invocation.actor }
+          subject = dispatcher
+
+          assert_equal :alice, subject.call(payload, actor: :alice).value
+          assert_equal :bob, subject.call(payload, actor: :bob).value
+        end
+
+        test "different tenants never share cached results" do
+          register("orders.refresh") { |invocation| invocation.tenant }
+          subject = dispatcher
+
+          assert_equal :acme, subject.call(payload, actor: :alice, tenant: :acme).value
+          assert_equal :other, subject.call(payload, actor: :alice, tenant: :other).value
+        end
+
+        test "a resolver cannot substitute a different surface" do
+          register("orders.refresh") { @calls << :called }
+
+          assert_raises(UnauthorizedActionError) do
+            dispatcher(surface_resolver: ->(*) { Surface.new("wrong", 1) }).call(payload)
+          end
+          assert_empty @calls
+        end
+
+        test "nil and false handler results are replayable" do
+          [ nil, false ].each_with_index do |value, index|
+            register("orders.refresh") { @calls << :called; value }
+            subject = dispatcher
+            submission = payload(idempotency_key: "nullable-#{index}")
+            subject.call(submission)
+            replay = subject.call(submission)
+
+            assert replay.replayed?
+            value.nil? ? assert_nil(replay.value) : assert_equal(value, replay.value)
+          end
+          assert_equal 2, @calls.size
+        end
       end
     end
   end

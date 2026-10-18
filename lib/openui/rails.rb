@@ -14,6 +14,7 @@ module OpenUI
 end
 
 require "openui/rails/errors"
+require "openui/rails/json_value"
 require "openui/rails/library_manifest"
 require "openui/rails/prompt_builder"
 require "openui/rails/message"

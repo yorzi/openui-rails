@@ -31,16 +31,19 @@ module OpenUI
             idempotency_store: configuration.idempotency_store || Idempotency::MemoryStore.new,
             idempotency_ttl: configuration.idempotency_ttl,
             authorize_action: configuration.authorize_action,
-            surface_resolver: configuration.surface_resolver
+            surface_resolver: configuration.surface_resolver,
+            idempotency_scope: configuration.idempotency_scope
           )
         end
 
-        def initialize(registry:, idempotency_store:, idempotency_ttl:, authorize_action: nil, surface_resolver: nil)
+        def initialize(registry:, idempotency_store:, idempotency_ttl:, authorize_action: nil, surface_resolver: nil,
+                       idempotency_scope: nil)
           @registry = registry
           @idempotency_store = idempotency_store
           @idempotency_ttl = idempotency_ttl
           @authorize_action = authorize_action
           @surface_resolver = surface_resolver
+          @idempotency_scope = idempotency_scope
         end
 
         # @param payload [Hash, Submission]
@@ -68,11 +71,11 @@ module OpenUI
 
           authorize!(definition, invocation)
 
-          replayed, stored = claim_idempotency(submission)
+          replayed, stored, key, token = claim_idempotency(submission, invocation)
           return result(submission, stored, replayed: true) if replayed
 
           value = definition.handler.call(invocation)
-          @idempotency_store.record(submission.idempotency_key, value)
+          @idempotency_store.record(key, value, claim_token: token)
           result(submission, value, replayed: false)
         end
 
@@ -94,6 +97,9 @@ module OpenUI
         end
 
         def check_version!(submission, surface)
+          if surface.respond_to?(:id) && surface.id.to_s != submission.surface_id
+            raise UnauthorizedActionError, "resolved surface does not match the submission"
+          end
           return if surface.nil? || !surface.respond_to?(:version)
           return if surface.version == submission.version
 
@@ -113,20 +119,34 @@ module OpenUI
           raise UnauthorizedActionError, "action #{definition.name} is not permitted"
         end
 
-        def claim_idempotency(submission)
-          key = submission.idempotency_key
-          digest = submission.args_digest
-          status, stored, stored_digest = @idempotency_store.claim(key, ttl: @idempotency_ttl, digest: digest)
+        def claim_idempotency(submission, invocation)
+          scope = if @idempotency_scope
+            @idempotency_scope.call(invocation)
+          else
+            [ identity(invocation.tenant), identity(invocation.actor) ]
+          end
+          key = Digest::SHA256.hexdigest(JSON.generate([ scope, submission.idempotency_key ]))
+          digest = Digest::SHA256.hexdigest(JSON.generate(submission.to_h.except(:idempotency_key)))
+          status, stored, stored_digest, token = @idempotency_store.claim(key, ttl: @idempotency_ttl, digest: digest)
 
-          return [ false, nil ] if status == :claimed
+          return [ false, nil, key, token ] if status == :claimed
 
           if stored_digest != digest
             raise ReplayError, "idempotency key reused with different arguments"
           end
 
-          raise ReplayError, "duplicate submission is still in progress" if stored.nil?
+          raise ReplayError, "duplicate submission is still in progress" if status == :pending
+          raise ConfigurationError, "invalid idempotency store status #{status.inspect}" unless status == :replay
 
           [ true, stored ]
+        end
+
+        def identity(record)
+          return nil if record.nil?
+          return [ record.class.name, record ] if record.is_a?(String) || record.is_a?(Symbol) || record.is_a?(Numeric)
+          return [ record.class.name, record.id.to_s ] if record.respond_to?(:id) && !record.id.nil?
+
+          raise ConfigurationError, "actor/tenant needs a stable id; configure idempotency_scope for other identities"
         end
 
         def result(submission, value, replayed:)

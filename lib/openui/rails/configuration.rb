@@ -23,7 +23,8 @@ module OpenUI
                     :actions_endpoint, :surface_id_param,
                     :stream_byte_limit, :pending_byte_limit, :idempotency_ttl,
                     :authorize_action, :on_error, :action_registry, :surface_resolver, :actor_resolver,
-                    :runtime_version, :runtime_url, :runtime_integrity, :local_runtime_path
+                    :runtime_version, :runtime_url, :runtime_integrity, :local_runtime_path,
+                    :idempotency_scope
 
       def initialize
         @transport = :turbo
@@ -68,8 +69,8 @@ module OpenUI
       end
 
       def idempotency_store=(store)
-        unless store.nil? || store.respond_to?(:claim)
-          raise ConfigurationError, "idempotency_store must respond to #claim"
+          unless store.nil? || (store.respond_to?(:claim) && store.respond_to?(:record))
+            raise ConfigurationError, "idempotency_store must respond to #claim and #record"
         end
 
         @idempotency_store = store

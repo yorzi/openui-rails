@@ -88,4 +88,11 @@ class ActionsEndpointTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_content
     assert_equal "csrf_failed", JSON.parse(response.body).dig("error", "code")
   end
+
+  test "malformed action names are request errors rather than configuration errors" do
+    post "/openui-rails/actions", params: payload(action: "<invalid>"), as: :json
+
+    assert_response :unprocessable_content
+    assert_equal "invalid_action", JSON.parse(response.body).dig("error", "code")
+  end
 end

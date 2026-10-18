@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "digest"
+require "json"
 
 module OpenUI
   module Rails
@@ -26,7 +27,7 @@ module OpenUI
 
           new(
             action: values["action"],
-            args: values["args"] || {},
+            args: values.fetch("args", {}),
             surface_id: values["surface_id"] || values["surfaceId"],
             version: values["version"],
             idempotency_key: values["idempotency_key"] || values["idempotencyKey"],
@@ -40,8 +41,8 @@ module OpenUI
           @idempotency_key = validate_idempotency_key(idempotency_key)
           @version = validate_version(version)
           @args = validate_args(args)
-          @confirmed = confirmed ? true : false
-          @args_digest = Digest::SHA256.hexdigest(canonical_json(@args))
+          @confirmed = confirmed == true
+          @args_digest = Digest::SHA256.hexdigest(JSON.generate(@args)).freeze
           freeze
         end
 
@@ -68,7 +69,7 @@ module OpenUI
           raise InvalidActionError, "#{name} is required" if string.empty?
           raise InvalidActionError, "#{name} must be a scalar" unless value.is_a?(String) || value.is_a?(Symbol)
 
-          string
+          string.dup.freeze
         end
 
         def validate_idempotency_key(value)
@@ -91,16 +92,9 @@ module OpenUI
         def validate_args(value)
           raise InvalidActionError, "args must be an object" unless value.is_a?(Hash)
 
-          value
-        end
-
-        def canonical_json(value)
-          case value
-          when Hash
-            JSON.generate(value.keys.map(&:to_s).sort.each_with_object({}) { |key, memo| memo[key] = value[key] })
-          else
-            JSON.generate(value)
-          end
+          JsonValue.copy(value)
+        rescue ArgumentError => error
+          raise InvalidActionError, error.message
         end
       end
     end

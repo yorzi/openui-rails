@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 module OpenUI
   module Rails
     module Actions
@@ -9,8 +11,9 @@ module OpenUI
         # that implements the same contract.
         #
         # Contract:
-        #   claim(key, ttl:, digest:) -> [:claimed, nil, digest] | [:replay, result, digest]
-        #   record(key, result)
+        #   claim(key, ttl:, digest:) -> [status, result, digest, claim_token]
+        #   status is :claimed, :pending or :replay (even for a nil result).
+        #   record(key, result, claim_token:) ignores an expired/replaced claim.
         class MemoryStore
           def initialize(clock: -> { Process.clock_gettime(Process::CLOCK_MONOTONIC) })
             @entries = {}
@@ -19,23 +22,29 @@ module OpenUI
           end
 
           def claim(key, ttl:, digest: nil)
+            raise ConfigurationError, "idempotency ttl must be positive" unless ttl.is_a?(Numeric) && ttl.finite? && ttl > 0
+
             @mutex.synchronize do
               now = @clock.call
               purge(now)
 
               if (entry = @entries[key])
-                return [ :replay, entry[:result], entry[:digest] ]
+                return [ entry[:completed] ? :replay : :pending, entry[:result], entry[:digest], entry[:token] ]
               end
 
-              @entries[key] = { digest: digest, result: nil, expires_at: now + ttl }
-              [ :claimed, nil, digest ]
+              token = SecureRandom.hex(16)
+              @entries[key] = { digest: digest, result: nil, completed: false, token: token, expires_at: now + ttl }
+              [ :claimed, nil, digest, token ]
             end
           end
 
-          def record(key, result)
+          def record(key, result, claim_token:)
             @mutex.synchronize do
               entry = @entries[key]
-              entry[:result] = result if entry
+              if entry && entry[:token] == claim_token && entry[:expires_at] > @clock.call
+                entry[:result] = result
+                entry[:completed] = true
+              end
             end
           end
 
