@@ -11,6 +11,13 @@ require "open3"
 archive = File.expand_path(ARGV.fetch(0))
 repository = File.expand_path("..", __dir__)
 package = Gem::Package.new(archive)
+# ruby/setup-ruby keeps cached dependencies outside the system GEM_PATH.
+# Preserve those gem homes when the child intentionally leaves this bundle.
+gem_homes = Gem.loaded_specs.values.filter_map do |spec|
+  parent = File.dirname(spec.full_gem_path)
+  File.dirname(parent) if File.basename(parent) == "gems"
+end
+gem_path = (gem_homes + Gem.path).uniq.join(File::PATH_SEPARATOR)
 
 def run!(*command, directory:, environment: {})
   output, error, status = Open3.capture3(environment, *command, chdir: directory)
@@ -33,7 +40,7 @@ Dir.mktmpdir("openui-package-smoke") do |directory|
   GEMFILE
 
   Bundler.with_unbundled_env do
-    environment = { "BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "RAILS_ENV" => "test" }
+    environment = { "BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "GEM_PATH" => gem_path, "RAILS_ENV" => "test" }
     run!("bundle", "install", "--local", directory: host, environment: environment)
     run!("bundle", "exec", "ruby", "bin/rails", "generate", "openui:install", directory: host, environment: environment)
     abort "generator did not mount the engine" unless File.read(File.join(host, "config/routes.rb")).include?("OpenUI::Rails::Engine")

@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   resolve:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       revision: ${{ steps.revision.outputs.sha }}
     steps:
@@ -41,7 +41,7 @@ jobs:
 
   package:
     needs: [ resolve, verify ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -63,7 +63,7 @@ jobs:
   publish:
     needs: [ resolve, package ]
     if: github.event_name == 'workflow_dispatch' && inputs.publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Configure required reviewers and keep RUBYGEMS_API_KEY in this environment.
     # The environment name alone does not create a required-reviewer rule.
     environment: release

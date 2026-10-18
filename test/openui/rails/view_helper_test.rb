@@ -7,6 +7,9 @@ module OpenUI
     class ViewHelperTest < ActionView::TestCase
       include OpenUI::Rails::ViewHelper
 
+      setup { OpenUI::Rails.reset_configuration! }
+      teardown { OpenUI::Rails.reset_configuration! }
+
       test "renders an escaped mount element" do
         html = openui_surface(id: "s1", version: 1, library_version: "sha256:x", response: "root = Card()")
 

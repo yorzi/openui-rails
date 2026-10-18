@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   security:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -28,7 +28,7 @@ jobs:
         run: bundle exec bundler-audit check --update
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       RUBY_VERSION: ruby-3.3
       RUBOCOP_CACHE_ROOT: tmp/rubocop
@@ -58,7 +58,7 @@ jobs:
         run: bin/rubocop -f github
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -97,7 +97,7 @@ jobs:
           if-no-files-found: ignore
 
   system:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       RUBY_VERSION: ruby-3.3
       RAILS_VERSION: "8.1"
@@ -137,7 +137,7 @@ jobs:
           if-no-files-found: ignore
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       RUBY_VERSION: ruby-3.3
     steps:
