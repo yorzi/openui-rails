@@ -30,6 +30,14 @@ class RealRuntimeCompatibilityTest < ApplicationSystemTestCase
     assert_no_selector "script[src*='cdn.jsdelivr.net']", visible: :all
   end
 
+  test "shipped default-library exports match the actual browser runtime" do
+    library = page.evaluate_script("({ prompt: window.__OpenUI.openuiChatLibrary.prompt(), spec: window.__OpenUI.openuiChatLibrary.toSpec() })")
+    files = OpenUI::Rails::DefaultLibrary.files
+
+    assert_equal files.fetch("library.prompt.txt"), library.fetch("prompt").b
+    assert_equal JSON.parse(files.fetch("library.spec.json")), library.fetch("spec")
+  end
+
   test "a real component action reaches Rails through the official type and params shape" do
     visit "/demo"
     assert_text "Hello from OpenUI"

@@ -18,17 +18,23 @@ After reading this guide, you will know:
 
 ## Use the default chat library
 
-The default browser bundle contains `openuiChatLibrary` only. Save its prompt and spec before asking a model to generate UI. Fetch and register the runtime using [Runtime Assets]({% link _core_features/runtime-assets.md %}), then render a local surface with both library paths temporarily set to `nil`. This bootstrap page cannot verify library identity and should only be used locally.
+The default browser bundle contains `openuiChatLibrary` only. After running the install generator, prepare its matching prompt and spec:
 
-After the runtime loads, run each expression separately in that page's browser console:
-
-```js
-const library = window.__OpenUI.openuiChatLibrary
-library.prompt()
-JSON.stringify(library.toSpec(), null, 2)
+```sh
+bin/rails openui:library:prepare
 ```
 
-Save the returned prompt string as `config/openui/library.prompt.txt` and the JSON as `config/openui/library.spec.json`. Save the string value, without console quotes or escape sequences. Restore both paths in the initializer and restart the app. Commit both files and run the validation below. The real-runtime compatibility probe uses `toSpec()` from the pinned bundle to check library identity; it does not qualify arbitrary custom libraries.
+This task copies the gem's checksum-verified exports of the pinned runtime's `prompt()` and `toSpec()` methods to the configured `prompt_path` and `library_spec_path`. It also copies `openui.LICENSE.txt` beside the prompt. It needs no browser, Node, network, or provider. Commit all three files and preserve the upstream license when redistributing them. Fetch and register the runtime separately using [Runtime Assets]({% link _core_features/runtime-assets.md %}).
+
+Repeated preparation leaves identical files untouched. If any existing output differs, the task stops before writing. Back up custom files before explicitly replacing them:
+
+```sh
+bin/rails 'openui:library:prepare[true]'
+```
+
+Both configured paths must be regular files within the application root. Paths that resolve outside that root and symlink file targets are rejected, including with overwrite enabled. The task does not change the initializer or authorize actions.
+
+The real-runtime suite compares the shipped exports with the actual browser library. A custom library still requires its own matching runtime and exports.
 
 ## Generate a custom library
 
@@ -59,3 +65,4 @@ If you change the component library, regenerate both files and ensure new respon
 * [Runtime Assets]({% link _core_features/runtime-assets.md %}) - install the matching browser runtime.
 * [Rendering Surfaces]({% link _core_features/surfaces.md %}) - render the response and its library fingerprint.
 * [Configuration]({% link _getting_started/configuration.md %}) - configure manifest and prompt paths.
+* [Setup Diagnostics]({% link _getting_started/setup-diagnostics.md %}) - inspect local setup and unresolved host responsibilities.

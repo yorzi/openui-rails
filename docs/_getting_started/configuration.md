@@ -37,7 +37,7 @@ end
 
 The example is only a starting point. Replace the actor and surface lookup with your authentication and tenant-scoping rules. Actions are denied when no per-action or global authorizer is configured.
 
-After you create the matching prompt and manifest, call `OpenUI::Rails.configuration.validate!` from a task, console, or deployment check. Boot does not call it because the generator and runtime-fetch task must work before those files exist.
+After you create the matching prompt and manifest, call `OpenUI::Rails.configuration.validate!` from a task, console, or deployment check. Boot does not call it because the generator and runtime-fetch task must work before those files exist. For a local report that also checks assets and routes, use [Setup Diagnostics]({% link _getting_started/setup-diagnostics.md %}).
 
 ## Settings
 

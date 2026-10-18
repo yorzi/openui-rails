@@ -39,13 +39,14 @@ module OpenUI
       say "openui-rails installed.", :green
       say ""
       say "Next steps:"
-      say "  1. Generate the library prompt and spec with the pinned CLI:"
-      say "     npx --yes @openuidev/cli@0.6.0 generate <entry> --out config/openui/library.prompt.txt --no-telemetry"
+      say "  1. Prepare the default chat library (no browser, Node, or provider required):"
+      say "     bin/rails openui:library:prepare"
       say "  2. Self-host the pinned runtime:"
       say "     bin/rails openui:runtime:fetch"
-      say "  3. Register actions and an authorizer (see config/initializers/openui.rb)."
-      say "  4. Pin/register the Stimulus controllers and include openui_stylesheet_tag in your layout."
-      say "     The default bundle requires the exact openuiChatLibrary prompt/spec. See the gem README."
+      say "  3. Pin/register the Stimulus controllers and include openui_stylesheet_tag in your layout."
+      say "  4. Run bin/rails openui:doctor, then verify rendering in a browser."
+      say "  5. Configure scoped surfaces and authorization before enabling actions."
+      say "     Custom libraries require a matching custom runtime; see config/openui/README.md."
       say ""
     end
 

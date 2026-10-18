@@ -24,6 +24,16 @@ or referenced at an exact pinned version):
 
 The OpenUI repository is licensed MIT: "Copyright (c) 2011-2024 Thesys Inc."
 
+## Default-library exports
+
+The gem includes the `openuiChatLibrary.prompt()` and `toSpec()` exports from
+the exact pinned browser bundle under `lib/openui/rails/default_library/`.
+`provenance.json` records the runtime integrity pin and export checksums. The
+upstream MIT license accompanies them as `openui.LICENSE.txt` and is copied
+alongside application artifacts by `openui:library:prepare`. Preserve it when
+redistributing these exports. The exports contain library definitions and
+prompt instructions, not the browser renderer implementation.
+
 ## Transitive browser dependencies
 
 The official browser bundle inlines dependencies, including React 19. They do

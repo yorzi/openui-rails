@@ -1,7 +1,7 @@
 ---
 layout: default
 title: What's New in 0.1
-nav_order: 4
+nav_order: 6
 description: Learn what the first OpenUI Rails release provides and which responsibilities stay in your Rails application.
 ---
 

@@ -1,6 +1,25 @@
 # frozen_string_literal: true
 
 namespace :openui do
+  desc "Check local OpenUI setup without writes or network requests"
+  task doctor: :environment do
+    report = OpenUI::Rails::Doctor.new(root: ::Rails.root, routes: ::Rails.application.routes).run
+    puts report
+    exit 1 unless report.ok?
+  end
+
+  namespace :library do
+    desc "Prepare the pinned default chat prompt and spec (pass true to overwrite)"
+    task :prepare, [ :force ] => :environment do |_task, args|
+      unless [ nil, "true", "false" ].include?(args[:force])
+        raise OpenUI::Rails::ConfigurationError, "force must be true or false"
+      end
+      paths = OpenUI::Rails::DefaultLibrary.prepare(root: ::Rails.root, force: args[:force] == "true")
+      paths.each { |path| puts "Prepared #{path}" }
+      puts "Default library ready; commit the prompt and spec together."
+    end
+  end
+
   namespace :runtime do
     desc "Vendor the checksum-locked OpenUI JS, CSS and license (requires npm)"
     task :fetch, [ :destination ] => :environment do |_task, args|

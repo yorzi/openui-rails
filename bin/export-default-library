@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Maintainer-only regeneration. Applications copy these exported artifacts with
+# openui:library:prepare and do not need Selenium or Chrome.
+require "bundler/setup"
+require "digest"
+require "fileutils"
+require "json"
+require "selenium-webdriver"
+require_relative "../lib/openui/rails"
+
+runtime = File.expand_path(ARGV.fetch(0) { abort "Usage: bin/export-default-library RUNTIME_DIRECTORY [--check]" })
+check = ARGV[1] == "--check"
+abort "Unexpected arguments" unless ARGV.length == (check ? 2 : 1)
+asset = File.join(runtime, "#{OpenUI::Rails::RuntimeAsset::FILE_PREFIX}-#{OpenUI::Rails::RuntimeAsset::PINNED_VERSION}.js")
+integrity = OpenUI::Rails::RuntimePackage::FILES.fetch("package/dist/openui-bundle.min.js").last
+abort "Runtime checksum mismatch" unless File.file?(asset) && "sha384-#{Digest::SHA384.file(asset).base64digest}" == integrity
+
+module OpenUIExportLoopbackProbe
+  def free?(port)
+    TCPServer.open("127.0.0.1", port) { true }
+  rescue Errno::EADDRINUSE
+    false
+  end
+end
+Selenium::WebDriver::PortProber.singleton_class.prepend(OpenUIExportLoopbackProbe)
+options = Selenium::WebDriver::Chrome::Options.new
+%w[--headless=new --disable-background-networking --no-sandbox --disable-dev-shm-usage].each { |value| options.add_argument(value) }
+options.binary = ENV["CHROME_BIN"] if ENV["CHROME_BIN"]
+driver = Selenium::WebDriver.for(:chrome, options: options)
+begin
+  driver.navigate.to("about:blank")
+  driver.execute_script(File.read(asset))
+  exports = driver.execute_script(<<~JS)
+    const library = window.__OpenUI.openuiChatLibrary
+    return { prompt: library.prompt(), spec: library.toSpec() }
+  JS
+  files = {
+    "library.prompt.txt" => exports.fetch("prompt"),
+    "library.spec.json" => JSON.pretty_generate(exports.fetch("spec")) + "\n"
+  }
+  license = File.join(runtime, "#{OpenUI::Rails::RuntimeAsset::FILE_PREFIX}-#{OpenUI::Rails::RuntimeAsset::PINNED_VERSION}.LICENSE.txt")
+  expected_license = OpenUI::Rails::RuntimePackage::FILES.fetch("package/LICENSE").last
+  abort "Runtime license checksum mismatch" unless File.file?(license) && "sha384-#{Digest::SHA384.file(license).base64digest}" == expected_license
+  files["openui.LICENSE.txt"] = File.binread(license)
+  files["provenance.json"] = JSON.pretty_generate({
+    runtime_package: "@openuidev/browser-bundle", runtime_version: OpenUI::Rails::RuntimeAsset::PINNED_VERSION,
+    runtime_integrity: integrity, library: "openuiChatLibrary",
+    exports: { "library.prompt.txt" => "prompt()", "library.spec.json" => "toSpec()" },
+    sha256: files.transform_values { |content| Digest::SHA256.hexdigest(content) }
+  }) + "\n"
+  destination = File.expand_path("../lib/openui/rails/default_library", __dir__)
+  if check
+    abort "Default library exports differ; regenerate and review" unless files.all? { |name, content| File.binread(File.join(destination, name)) == content }
+    puts "Default library exports match the pinned runtime."
+  else
+    FileUtils.mkdir_p(destination)
+    files.each { |name, content| File.binwrite(File.join(destination, name), content) }
+    puts "Exported the pinned default library to #{destination}"
+  end
+ensure
+  driver.quit
+end

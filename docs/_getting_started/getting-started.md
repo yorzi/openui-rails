@@ -28,8 +28,8 @@ OpenUI Rails supports Ruby 3.2 or newer and Rails 8.0 or newer, below Rails 9. T
 The generator does not download JavaScript assets or create a library prompt and manifest. Complete these steps before rendering:
 
 1. Fetch the pinned runtime, include its stylesheet, and register the Stimulus controllers using [Runtime Assets]({% link _core_features/runtime-assets.md %}).
-2. Save the matching default-library prompt and spec using [Library and Prompt Contract]({% link _core_features/library-contract.md %}#use-the-default-chat-library). The CLI path in that guide is for a custom library and requires a matching custom runtime.
-3. Run `bin/rails runner 'OpenUI::Rails.configuration.validate!'` after both files exist. See [Configuration]({% link _getting_started/configuration.md %}) for application settings.
+2. Run `bin/rails openui:library:prepare` for the default chat library. See [Library and Prompt Contract]({% link _core_features/library-contract.md %}) for custom libraries.
+3. Run `bin/rails openui:doctor` to inspect local setup, then verify rendering in a browser. See [Setup Diagnostics]({% link _getting_started/setup-diagnostics.md %}) for the report's limits and [Configuration]({% link _getting_started/configuration.md %}) for application settings.
 
 ## Supported versions
 

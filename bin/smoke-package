@@ -7,8 +7,16 @@ require "bundler/setup"
 require "rubygems/package"
 require "tmpdir"
 require "open3"
+require "optparse"
+require "fileutils"
 
+runtime = nil
+OptionParser.new do |parser|
+  parser.banner = "Usage: bin/smoke-package GEM [--runtime DIRECTORY]"
+  parser.on("--runtime DIRECTORY", "Also verify setup in Chrome with local assets") { |path| runtime = File.expand_path(path) }
+end.parse!
 archive = File.expand_path(ARGV.fetch(0))
+abort "Expected one gem artifact" unless ARGV.size == 1
 repository = File.expand_path("..", __dir__)
 package = Gem::Package.new(archive)
 # ruby/setup-ruby keeps cached dependencies outside the system GEM_PATH.
@@ -19,9 +27,9 @@ gem_homes = Gem.loaded_specs.values.filter_map do |spec|
 end
 gem_path = (gem_homes + Gem.path).uniq.join(File::PATH_SEPARATOR)
 
-def run!(*command, directory:, environment: {})
+def run!(*command, directory:, environment: {}, expected_status: 0)
   output, error, status = Open3.capture3(environment, *command, chdir: directory)
-  abort "#{command.join(' ')} failed:\n#{output}\n#{error}" unless status.success?
+  abort "#{command.join(' ')} failed:\n#{output}\n#{error}" unless status.exitstatus == expected_status
   output
 end
 
@@ -38,6 +46,11 @@ Dir.mktmpdir("openui-package-smoke") do |directory|
     gem "propshaft"
     gem "sqlite3"
   GEMFILE
+  if runtime
+    File.open(File.join(host, "Gemfile"), "a") do |file|
+      file.puts 'gem "importmap-rails"', 'gem "stimulus-rails"', 'gem "capybara"', 'gem "selenium-webdriver"', 'gem "puma"'
+    end
+  end
 
   Bundler.with_unbundled_env do
     environment = { "BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "GEM_PATH" => gem_path, "RAILS_ENV" => "test" }
@@ -45,9 +58,18 @@ Dir.mktmpdir("openui-package-smoke") do |directory|
     run!("bundle", "exec", "ruby", "bin/rails", "generate", "openui:install", directory: host, environment: environment)
     abort "generator did not mount the engine" unless File.read(File.join(host, "config/routes.rb")).include?("OpenUI::Rails::Engine")
 
-    %w[library.spec.json library.prompt.txt].each do |name|
-      File.write(File.join(host, "config/openui", name), File.read(File.join(repository, "test/fixtures/files", name)))
-    end
+    missing = run!("bundle", "exec", "ruby", "bin/rails", "openui:doctor", directory: host, environment: environment, expected_status: 1)
+    abort "doctor did not identify missing setup" unless missing.include?("[FAIL]") && missing.include?("[UNVERIFIED]")
+    run!("bundle", "exec", "ruby", "bin/rails", "openui:library:prepare", directory: host, environment: environment)
+    prompt = File.join(host, "config/openui/library.prompt.txt")
+    prepared = File.binread(prompt)
+    original_mtime = File.mtime(prompt)
+    run!("bundle", "exec", "ruby", "bin/rails", "openui:library:prepare", directory: host, environment: environment)
+    abort "repeated preparation changed files" unless File.binread(prompt) == prepared && File.mtime(prompt) == original_mtime
+    File.write(prompt, "preserve this custom prompt")
+    run!("bundle", "exec", "ruby", "bin/rails", "openui:library:prepare", directory: host, environment: environment, expected_status: 1)
+    abort "preparation overwrote a custom prompt" unless File.read(prompt) == "preserve this custom prompt"
+    run!("bundle", "exec", "ruby", "bin/rails", "openui:library:prepare[true]", directory: host, environment: environment)
     File.write(File.join(host, "app/controllers/smoke_controller.rb"), <<~RUBY)
       class SmokeController < ApplicationController
         def show
@@ -69,5 +91,88 @@ Dir.mktmpdir("openui-package-smoke") do |directory|
       puts "Built gem: fresh Rails host, install generator, eager load, and HTTP render passed"
     RUBY
     puts run!("bundle", "exec", "ruby", "probe.rb", directory: host, environment: environment)
+
+    if runtime
+      require "digest"
+      # Read the pins from the extracted artifact, not from the source checkout.
+      verification = <<~RUBY
+        require_relative "config/environment"
+        OpenUI::Rails::RuntimePackage::FILES.each_value do |suffix, expected|
+          path = File.join(#{runtime.inspect}, "\#{OpenUI::Rails::RuntimeAsset::FILE_PREFIX}-\#{OpenUI::Rails::RuntimeAsset::PINNED_VERSION}.\#{suffix}")
+          abort "package runtime checksum mismatch" unless File.file?(path) && "sha384-\#{Digest::SHA384.file(path).base64digest}" == expected
+          FileUtils.mkdir_p(Rails.root.join("public/openui"))
+          FileUtils.cp(path, Rails.root.join("public/openui", File.basename(path)))
+        end
+      RUBY
+      File.write(File.join(host, "copy_runtime.rb"), verification)
+      run!("bundle", "exec", "ruby", "copy_runtime.rb", directory: host, environment: environment)
+      initializer = File.join(host, "config/initializers/openui.rb")
+      original_initializer = File.read(initializer)
+      File.open(initializer, "a") do |file|
+        file.puts 'OpenUI::Rails.configure { |config| config.runtime_integrity = "sha384-invalid" }'
+      end
+      invalid_sri = run!("bundle", "exec", "ruby", "bin/rails", "openui:doctor", directory: host, environment: environment, expected_status: 1)
+      abort "doctor missed an incorrect integrity override" unless invalid_sri.include?("[FAIL] runtime js")
+      File.write(initializer, original_initializer)
+      doctor = run!("bundle", "exec", "ruby", "bin/rails", "openui:doctor", directory: host, environment: environment)
+      abort "doctor did not verify the prepared default library" unless doctor.include?("[PASS] library identity") && !doctor.include?("[FAIL]")
+
+      File.write(File.join(host, "app/controllers/smoke_controller.rb"), <<~'RUBY')
+        class SmokeController < ApplicationController
+          def show
+            render inline: <<~ERB, layout: "application"
+              <main>
+                <h1>Installed gem setup</h1>
+                <%= openui_surface(surface: {
+                  id: "installed-gem", version: 0,
+                  library_version: OpenUI::Rails.configuration.library_fingerprint,
+                  response: 'root = Card([TextContent("Installed gem ready"), Buttons([Button("Confirm setup", @ToAssistant("Hello Rails"))])])'
+                }, label: "Installed gem") %>
+                <p id="setup-result" role="status">Waiting for action</p>
+                <p id="setup-error" role="alert"></p>
+              </main>
+            ERB
+          end
+        end
+      RUBY
+      File.write(File.join(host, "app/views/layouts/application.html.erb"), <<~'ERB')
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <title>OpenUI installed gem verification</title>
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <%= csrf_meta_tags %>
+            <%= openui_stylesheet_tag %>
+            <%= javascript_importmap_tags %>
+            <style>body { margin: 0; padding: 16px; font-family: system-ui; } main { max-width: 720px; margin: auto; } h1 { font-size: 24px; } </style>
+          </head>
+          <body><%= yield %></body>
+        </html>
+      ERB
+      FileUtils.mkdir_p(File.join(host, "app/javascript"))
+      File.write(File.join(host, "config/importmap.rb"), <<~'RUBY')
+        pin "application"
+        pin "@hotwired/stimulus", to: "stimulus.min.js"
+        pin_all_from OpenUI::Rails::Engine.root.join("app/javascript/openui"), under: "openui"
+      RUBY
+      File.write(File.join(host, "app/javascript/application.js"), <<~'JS')
+        import { Application } from "@hotwired/stimulus"
+        import OpenUIController from "openui/rails/openui_controller"
+        const application = Application.start()
+        application.register("openui", OpenUIController)
+        document.addEventListener("openui:action", ({detail}) => {
+          document.querySelector("#setup-result").textContent = detail.result.value.message
+        })
+        document.addEventListener("openui:error", ({detail}) => {
+          document.querySelector("#setup-error").textContent = detail.code || "renderer failure"
+        })
+      JS
+      artifacts = File.join(repository, "tmp/browser", "#{Time.now.utc.strftime('%Y%m%dT%H%M%S')}-#{Process.pid}-package")
+      FileUtils.mkdir_p(artifacts)
+      FileUtils.cp(File.join(repository, "test/package/browser_probe.rb"), File.join(host, "browser_probe.rb"))
+      browser_environment = environment.merge("OPENUI_BROWSER_ARTIFACTS" => artifacts, "SE_CACHE_PATH" => File.join(repository, "tmp/selenium"), "SE_AVOID_STATS" => "true")
+      puts "Package browser artifacts: #{artifacts}"
+      puts run!("bundle", "exec", "ruby", "browser_probe.rb", extracted, directory: host, environment: browser_environment)
+    end
   end
 end

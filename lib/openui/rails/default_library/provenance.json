@@ -1,0 +1,15 @@
+{
+  "runtime_package": "@openuidev/browser-bundle",
+  "runtime_version": "0.2.1",
+  "runtime_integrity": "sha384-GNNBzicRNkuscleA9e7/4cz6JwE9PE4BRKJ1udKWNzBh4DTD2/zpfOz4p91n8sW0",
+  "library": "openuiChatLibrary",
+  "exports": {
+    "library.prompt.txt": "prompt()",
+    "library.spec.json": "toSpec()"
+  },
+  "sha256": {
+    "library.prompt.txt": "7a334672957298e60543d80650615102b934bc88f69115e8602770a988514c3d",
+    "library.spec.json": "2c36842674a3d1f3a06deddd90304c67da65fc83686dd45e51d1b67d4a2178ad",
+    "openui.LICENSE.txt": "b6bdd2d3d161722fb3f3afc039114cfa9f3236f036e1c98e0853bc3a85f6cd9e"
+  }
+}

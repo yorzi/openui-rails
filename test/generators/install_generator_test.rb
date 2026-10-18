@@ -19,6 +19,9 @@ class InstallGeneratorTest < Rails::Generators::TestCase
       assert_match(/library_spec_path/, content)
     end
     assert_file "config/openui/README.md" do |content|
+      assert_includes content, "bin/rails openui:library:prepare"
+      assert_includes content, "bin/rails openui:doctor"
+      assert_operator content.index("openui:library:prepare"), :<, content.index("@openuidev/cli")
       assert_match(/@openuidev\/cli@0\.6\.0/, content)
       assert_match(/DO_NOT_TRACK/, content)
     end

@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `openui:library:prepare` installs prompt/spec exports of the exact pinned
+  default chat library and its upstream license without browser or Node tools.
+  Existing different files require explicit overwrite; outputs stay inside
+  the application root.
+- `openui:doctor` reports local configuration, default library identity,
+  runtime checksums, and action-route failures without writes or network calls.
+  Browser setup and host policy checks remain explicitly unverified.
+- Local `bin/check` and disposable `bin/check-browser` runners, with fixture
+  screenshots on both passing and failing tests and the same browser entry
+  point in CI.
+
+### Changed
+
+- The install generator leads with the default chat library and setup checks.
+  Custom libraries retain the pinned CLI path and require a matching runtime.
+
 ## [0.1.0] - 2026-10-18
 
 ### Fixed

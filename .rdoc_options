@@ -1,6 +1,7 @@
 ---
 title: "OpenUI Rails"
 exclude:
+  - lib/openui/rails/default_library/
   - lib/tasks/
   - lib/generators/
   - \.json$

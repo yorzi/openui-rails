@@ -39,10 +39,30 @@ a browser network sandbox. The stub suite exercises bridge failure cases; the
 real-runtime suite verifies the pinned renderer, library identity, actions,
 tools, and keyboard behavior. Neither proves live-provider compatibility.
 
-## Installed artifact and release
+## Refresh the default library exports
+
+When changing the pinned runtime, regenerate from its checksum-verified bundle:
+
+```sh
+bin/export-default-library tmp/real-runtime
+bin/export-default-library tmp/real-runtime --check
+```
+
+This maintainer command uses the existing Selenium/Chrome development tools,
+closes the browser afterward, and preserves the upstream license and provenance.
+Review the generated files and run the real-runtime tests. Applications use the
+exported files inside the gem and need none of these browser tools for preparation.
+
+## Installed artifact and release checks
 
 `bin/check` builds into `tmp/package/` and tests a new Rails host using that
-artifact. This does not establish external adoption or remote CI success.
+artifact. It verifies default library preparation, repeat runs, overwrite
+rejection, missing-setup doctor exits, eager load, and HTTP mount rendering.
+With `--runtime`, it also verifies a successful doctor report, actual rendering,
+an explicitly authorized CSRF-protected action, and a 390px mobile page in a
+fresh host. The host reads its prompt/spec from the gem, never test fixtures.
+Fixture screenshots use the same `tmp/browser/` tree. CI runs this path too.
+This does not establish external adoption or remote CI success.
 Dependency-advisory refreshes remain explicit network operations; run
 `bundle exec bundler-audit check --update` before a release. Follow
 [Releasing](RELEASING.md) for the remaining publication checks.

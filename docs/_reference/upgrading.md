@@ -25,7 +25,15 @@ gem "openui-rails", "~> {{ site.version }}"
 
 Run `bundle update openui-rails`. New applications can follow [Getting Started]({% link _getting_started/getting-started.md %}). This is the first gem release, so there is no upgrade from an earlier published version.
 
-## Move from a development checkout
+## Use the next setup tasks from 0.1.0
+
+The new setup tasks are additive. Existing applications do not need to rerun
+the installer or replace a working library. Run `openui:doctor` to inspect local
+setup. Use `openui:library:prepare` only when you want the pinned default chat
+library. Different existing files require explicit overwrite; preserve custom
+prompts, specs, and their matching runtimes.
+
+## Earlier development checkouts
 
 If your application used an earlier Git revision, review these changes:
 

@@ -33,5 +33,6 @@ Dir.chdir(File.expand_path("..", __dir__)) do
   run!("bundle", "exec", "ruby", "bin/smoke-package", artifact)
   run!(RbConfig.ruby, "bin/check-browser") if options[:browser] || options[:runtime]
   run!(RbConfig.ruby, "bin/check-browser", "--runtime", options[:runtime]) if options[:runtime]
+  run!("bundle", "exec", "ruby", "bin/smoke-package", artifact, "--runtime", options[:runtime]) if options[:runtime]
   run!("docs/bin/build.sh") if options[:docs]
 end
