@@ -67,7 +67,8 @@ module OpenUI
         # Broadcast a structured, PII-free error envelope and stop.
         # @return [self]
         def fail(error, code: "stream_failed")
-          @transport.broadcast(@writer.error_for(error, code: code))
+          envelope = @writer.error_for(error, code: code)
+          @transport.broadcast(envelope) if envelope
           self
         end
 

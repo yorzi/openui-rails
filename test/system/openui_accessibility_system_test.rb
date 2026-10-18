@@ -17,7 +17,7 @@ class OpenUIAccessibilitySystemTest < ApplicationSystemTestCase
 
     assert_selector ".openui-surface[data-openui-surface-id='surface-2'][aria-busy='true']"
 
-    dispatch({ "message_id" => "surface-2", "sequence" => 1, "type" => "openui.completed", "streaming" => false })
+    dispatch({ "message_id" => "surface-2", "sequence" => 0, "type" => "openui.completed", "streaming" => false })
 
     assert_selector ".openui-surface[data-openui-surface-id='surface-2'][aria-busy='false']"
   end
@@ -27,7 +27,7 @@ class OpenUIAccessibilitySystemTest < ApplicationSystemTestCase
 
     assert_selector ".openui-surface[data-openui-surface-id='surface-2'][aria-busy='true']"
 
-    dispatch({ "message_id" => "surface-2", "sequence" => 1, "type" => "openui.error",
+    dispatch({ "message_id" => "surface-2", "sequence" => 0, "type" => "openui.error",
                "code" => "provider_rejected", "message" => "nope" })
 
     assert_selector ".openui-surface[data-openui-surface-id='surface-2'][aria-busy='false']"

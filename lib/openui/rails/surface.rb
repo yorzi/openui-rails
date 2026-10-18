@@ -82,6 +82,7 @@ module OpenUI
           openui_streaming: (streaming? || stream) ? "true" : "false",
           openui_actions_url: actions_endpoint,
           openui_response: response,
+          openui_stream_byte_limit: OpenUI::Rails.configuration.stream_byte_limit.to_s,
           openui_initial_state: encode_state(initial_state || context)
         }.compact
       end

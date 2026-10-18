@@ -69,8 +69,8 @@ module OpenUI
       end
 
       def idempotency_store=(store)
-          unless store.nil? || (store.respond_to?(:claim) && store.respond_to?(:record))
-            raise ConfigurationError, "idempotency_store must respond to #claim and #record"
+        unless store.nil? || (store.respond_to?(:claim) && store.respond_to?(:record))
+          raise ConfigurationError, "idempotency_store must respond to #claim and #record"
         end
 
         @idempotency_store = store

@@ -24,6 +24,15 @@ module OpenUI
         #   :error, :ignored
         def apply(envelope)
           return :ignored unless envelope.message_id == message_id
+          unless envelope.snapshot?
+            return :duplicate if envelope.sequence < @next_sequence
+            return :ignored if @completed || error?
+            return :gap if @needs_snapshot
+            if envelope.sequence > @next_sequence
+              @needs_snapshot = true
+              return :gap
+            end
+          end
 
           case envelope.type
           when Envelope::DELTA then apply_delta(envelope)
@@ -43,22 +52,20 @@ module OpenUI
         private
 
         def apply_delta(envelope)
-          return :duplicate if envelope.sequence < @next_sequence
-
-          if envelope.sequence > @next_sequence
-            @needs_snapshot = true
-            return :gap
-          end
-
           @source << envelope.delta
           @next_sequence += 1
           :applied
         end
 
         def apply_snapshot(envelope)
+          minimum = @needs_snapshot ? @next_sequence - 1 : @next_sequence
+          return :duplicate if envelope.sequence < minimum
+
           @source = +envelope.response.dup
           @next_sequence = envelope.sequence + 1
           @needs_snapshot = false
+          @completed = !envelope.streaming?
+          @error = nil
           :snapshot
         end
 
@@ -70,6 +77,7 @@ module OpenUI
 
         def apply_error(envelope)
           @error = envelope
+          @next_sequence += 1
           :error
         end
       end

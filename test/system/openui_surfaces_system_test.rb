@@ -65,13 +65,13 @@ class OpenUISurfacesSystemTest < ApplicationSystemTestCase
   test "completion flips the streaming flag on the renderer" do
     within_surface("surface-2") { assert_selector "[data-openui-rendered][data-openui-streaming='true']" }
 
-    dispatch({ "message_id" => "surface-2", "sequence" => 1, "type" => "openui.completed", "streaming" => false })
+    dispatch({ "message_id" => "surface-2", "sequence" => 0, "type" => "openui.completed", "streaming" => false })
 
     within_surface("surface-2") { assert_selector "[data-openui-rendered][data-openui-streaming='false']" }
   end
 
   test "a stream error surfaces as an openui:error event" do
-    dispatch({ "message_id" => "surface-2", "sequence" => 1, "type" => "openui.error",
+    dispatch({ "message_id" => "surface-2", "sequence" => 0, "type" => "openui.error",
                "code" => "provider_rejected", "message" => "nope" })
 
     assert_selector "body[data-openui-last-error]"
@@ -94,6 +94,8 @@ class OpenUISurfacesSystemTest < ApplicationSystemTestCase
     assert_selector "body[data-openui-last-action]"
     detail = read_json("body", "data-openui-last-action")
     assert_equal "x", detail.dig("result", "value", "found")
+    assert_selector "body[data-openui-tool-value]"
+    assert_equal({ "found" => "x" }, read_json("body", "data-openui-tool-value"))
   end
 
   test "the Turbo envelope element is consumed and removed" do

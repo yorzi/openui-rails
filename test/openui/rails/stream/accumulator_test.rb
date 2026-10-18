@@ -43,7 +43,7 @@ module OpenUI
           @accumulator.apply(delta(2, "c"))
 
           assert_equal :snapshot, @accumulator.apply(
-            Envelope.snapshot(message_id: "msg-1", sequence: 0, response: "authoritative")
+            Envelope.snapshot(message_id: "msg-1", sequence: 0, response: "authoritative", streaming: true)
           )
 
           assert_equal "authoritative", @accumulator.source
@@ -54,15 +54,15 @@ module OpenUI
         end
 
         test "completed sets the finished flag" do
-          assert_equal :completed, @accumulator.apply(Envelope.completed(message_id: "msg-1", sequence: 3))
+          assert_equal :completed, @accumulator.apply(Envelope.completed(message_id: "msg-1", sequence: 0))
 
           assert @accumulator.completed?
-          assert_equal 4, @accumulator.next_sequence
+          assert_equal 1, @accumulator.next_sequence
         end
 
         test "error records the failing envelope" do
           assert_equal :error, @accumulator.apply(
-            Envelope.error(message_id: "msg-1", sequence: 1, code: "stream_failed")
+            Envelope.error(message_id: "msg-1", sequence: 0, code: "stream_failed")
           )
 
           assert @accumulator.error?

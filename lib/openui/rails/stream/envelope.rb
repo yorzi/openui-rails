@@ -31,10 +31,14 @@ module OpenUI
 
         def initialize(type:, message_id:, sequence:, library_version: nil, data: {})
           @type = validate_type(type)
-          @message_id = validate_message_id(message_id)
+          @message_id = validate_message_id(message_id).dup.freeze
           @sequence = validate_sequence(sequence)
-          @library_version = library_version
-          @data = data.freeze
+          @library_version = library_version&.dup&.freeze
+          unless data.is_a?(Hash) && (data.keys.map(&:to_s) & %w[type message_id sequence library_version]).empty?
+            raise StreamError, "envelope data cannot override routing metadata"
+          end
+          @data = JsonValue.copy(data)
+          validate_data!
           freeze
         end
 
@@ -107,6 +111,18 @@ module OpenUI
         def hash = to_h.hash
 
         private
+
+        def validate_data!
+          case type
+          when DELTA then self.class.validate_string!(delta, "delta")
+          when SNAPSHOT then self.class.validate_string!(response, "response")
+          when ERROR
+            raise StreamError, "unknown error code #{code.inspect}" unless ERROR_CODES.include?(code)
+          end
+          if data.key?("streaming") && ![ true, false ].include?(data["streaming"])
+            raise StreamError, "streaming must be boolean"
+          end
+        end
 
         def validate_type(type)
           type = type.to_s

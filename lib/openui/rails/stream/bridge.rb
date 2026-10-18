@@ -27,12 +27,23 @@ module OpenUI
 
         def each_envelope(source)
           writer = writer()
-          source.each do |chunk|
-            writer.push(chunk).each { |envelope| yield envelope }
+          source = source.to_enum
+          loop do
+            begin
+              chunk = source.next
+              envelopes = writer.push(chunk)
+            rescue StopIteration
+              break
+            rescue StandardError => error
+              envelope = writer.error_for(error)
+              yield envelope if envelope
+              return
+            end
+            # Transport/consumer failures are not provider failures. Let the
+            # host retry or report them without recursively broadcasting errors.
+            envelopes.each { |envelope| yield envelope }
           end
           writer.finish.each { |envelope| yield envelope }
-        rescue StandardError => e
-          yield writer.error_for(e)
         end
 
         # Build a stateful writer for push-based providers.
@@ -51,6 +62,11 @@ module OpenUI
           attr_reader :sequence
 
           def initialize(message_id:, library_version: nil, pending_byte_limit:, stream_byte_limit:, on_error: nil)
+            Envelope.completed(message_id: message_id, sequence: 0, library_version: library_version)
+            unless pending_byte_limit.is_a?(Integer) && stream_byte_limit.is_a?(Integer) &&
+                pending_byte_limit > 0 && stream_byte_limit >= pending_byte_limit
+              raise ConfigurationError, "stream limits must be positive integers with pending <= total"
+            end
             @message_id = message_id
             @library_version = library_version
             @pending_byte_limit = pending_byte_limit
@@ -59,16 +75,17 @@ module OpenUI
             @sequence = 0
             @total_bytes = 0
             @pending = +""
-            @overflowed = false
+            @terminated = false
           end
 
           # @return [Array<Envelope>] zero or more envelopes to emit
           def push(chunk)
-            return [] if @overflowed || chunk.nil? || chunk.empty?
+            return [] if @terminated || chunk.nil?
+            raise StreamError, "stream chunks must be strings" unless chunk.is_a?(String)
+            return [] if chunk.empty?
 
             @total_bytes += chunk.bytesize
             if @total_bytes > @stream_byte_limit
-              @overflowed = true
               return [ error_envelope("stream_too_large", "stream exceeded #{@stream_byte_limit} bytes") ]
             end
 
@@ -80,7 +97,7 @@ module OpenUI
 
           # @return [Array<Envelope>] the final delta (if any) and completion
           def finish
-            return [] if @overflowed
+            return [] if @terminated
 
             envelopes = []
             envelopes << flush_delta unless @pending.empty?
@@ -88,11 +105,14 @@ module OpenUI
               message_id: @message_id, sequence: @sequence, library_version: @library_version
             )
             @sequence += 1
+            @terminated = true
             envelopes
           end
 
           # Structured, PII-free error envelope for a provider/consumer failure.
           def error_for(error, code: "stream_failed")
+            return nil if @terminated
+
             @on_error&.call(error, message_id: @message_id)
 
             message = "stream failed (#{error.class})"
@@ -113,10 +133,14 @@ module OpenUI
           end
 
           def error_envelope(code, message)
-            Envelope.error(
+            envelope = Envelope.error(
               message_id: @message_id, sequence: @sequence, library_version: @library_version,
               code: code, message: message
             )
+            @sequence += 1
+            @terminated = true
+            @pending.clear
+            envelope
           end
         end
       end

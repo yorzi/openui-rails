@@ -40,14 +40,16 @@ function loadRuntime(url, integrity) {
  */
 export default class extends Controller {
   connect() {
+    const connection = Symbol("openui-connection")
+    this.connection = connection
     this.mountPoint = document.createElement("div")
     this.element.appendChild(this.mountPoint)
     this.abortController = new AbortController()
-    this.state = {
+    this.state ||= {
       source: this.initialResponse,
       streaming: this.streaming,
       completed: false,
-      nextSequence: 0,
+      nextSequence: Number(this.element.dataset.openuiNextSequence || 0),
       needsSnapshot: false,
     }
 
@@ -57,13 +59,22 @@ export default class extends Controller {
     // the Turbo transport) re-emits from its own element. applyEnvelope ignores
     // envelopes for other message ids, so a shared document listener is safe.
     document.addEventListener("openui:envelope", this.onEnvelope)
+    this.onBeforeCache = () => {
+      this.element.dataset.openuiResponse = this.state.source
+      this.element.dataset.openuiStreaming = String(this.state.streaming)
+      this.element.dataset.openuiNextSequence = String(this.state.nextSequence)
+      this.disconnect()
+    }
+    document.addEventListener("turbo:before-cache", this.onBeforeCache)
 
     this.syncBusy()
-    this.renderRuntime()
+    this.renderRuntime(connection)
   }
 
   disconnect() {
+    this.connection = null
     document.removeEventListener("openui:envelope", this.onEnvelope)
+    document.removeEventListener("turbo:before-cache", this.onBeforeCache)
     this.abortController?.abort()
     this.root?.unmount()
     this.root = null
@@ -71,20 +82,24 @@ export default class extends Controller {
     this.mountPoint = null
   }
 
-  async renderRuntime() {
+  async renderRuntime(connection) {
     try {
       const runtime = await loadRuntime(this.runtimeUrl, this.runtimeIntegrity)
-      if (!this.element.isConnected || !this.mountPoint) return
+      if (connection !== this.connection || !this.element.isConnected || !this.mountPoint) return
       this.runtime = runtime
       this.render()
     } catch (error) {
+      if (connection !== this.connection) return
+      this.state.streaming = false
+      this.syncBusy()
       this.handleError(error)
     }
   }
 
   render() {
-    const { React, createRoot, Renderer, openuiChatLibrary } = this.runtime
     this.syncBusy()
+    if (!this.runtime || !this.mountPoint || !this.connection) return
+    const { React, createRoot, Renderer, openuiChatLibrary } = this.runtime
     if (!this.root) this.root = createRoot(this.mountPoint)
     this.root.render(
       React.createElement(Renderer, {
@@ -94,7 +109,9 @@ export default class extends Controller {
         library: openuiChatLibrary,
         isStreaming: this.state.streaming,
         initialState: this.initialState,
-        onAction: (action) => this.dispatchAction(action),
+        // The official runtime emits { type, params }. It does not await this
+        // void callback; dispatchAction already emits a structured error.
+        onAction: (action) => { this.dispatchAction(action).catch(() => {}) },
         onStateUpdate: (formState) => this.persistState(formState),
         toolProvider: this.toolProvider(),
         onError: (error) => this.handleError(error),
@@ -106,6 +123,18 @@ export default class extends Controller {
 
   applyEnvelope(envelope) {
     if (!envelope || envelope.message_id !== this.messageId) return
+    if (!Number.isSafeInteger(envelope.sequence) || envelope.sequence < 0 ||
+        (envelope.type === "openui.delta" && typeof envelope.delta !== "string") ||
+        (envelope.type === "openui.snapshot" && typeof envelope.response !== "string")) {
+      return this.handleError(Object.assign(new Error("Malformed stream envelope"), { code: "invalid_envelope" }))
+    }
+    if (envelope.library_version && this.libraryVersion && envelope.library_version !== this.libraryVersion) {
+      return this.handleError(Object.assign(new Error("OpenUI library version mismatch"), { code: "library_version_mismatch" }))
+    }
+    if (envelope.type !== "openui.snapshot") {
+      if (envelope.sequence < this.state.nextSequence || this.state.completed) return
+      if (this.state.needsSnapshot || envelope.sequence > this.state.nextSequence) return this.requestSnapshot()
+    }
 
     switch (envelope.type) {
       case "openui.delta":
@@ -113,6 +142,7 @@ export default class extends Controller {
       case "openui.snapshot":
         return this.applySnapshot(envelope)
       case "openui.completed":
+        this.state.nextSequence += 1
         this.state.streaming = false
         this.state.completed = true
         return this.render()
@@ -120,6 +150,8 @@ export default class extends Controller {
         // A stream that ends in error is no longer busy, so assistive tech can
         // read whatever rendered before the failure.
         this.state.streaming = false
+        this.state.completed = true
+        this.state.nextSequence += 1
         this.syncBusy()
         return this.handleError(Object.assign(new Error(envelope.message || "stream error"), {
           code: envelope.code,
@@ -130,18 +162,7 @@ export default class extends Controller {
   }
 
   applyDelta(envelope) {
-    if (envelope.sequence < this.state.nextSequence) return // duplicate: ignore
-
-    if (envelope.sequence > this.state.nextSequence) {
-      // Missing sequence: never execute a partial; ask for the canonical text.
-      this.state.needsSnapshot = true
-      this.dispatch("snapshot-required", {
-        surfaceId: this.surfaceId,
-        sequence: this.state.nextSequence,
-      })
-      return
-    }
-
+    if (!this.withinByteLimit(this.state.source + envelope.delta)) return
     this.state.source = this.state.source + envelope.delta
     this.state.nextSequence += 1
     this.state.streaming = envelope.streaming !== false
@@ -149,19 +170,38 @@ export default class extends Controller {
   }
 
   applySnapshot(envelope) {
+    const minimum = this.state.needsSnapshot ? this.state.nextSequence - 1 : this.state.nextSequence
+    if (envelope.sequence < minimum || !this.withinByteLimit(envelope.response)) return
     this.state.source = envelope.response
     this.state.nextSequence = envelope.sequence + 1
     this.state.needsSnapshot = false
     this.state.streaming = envelope.streaming === true
+    this.state.completed = !this.state.streaming
     this.render()
+  }
+
+  requestSnapshot() {
+    if (this.state.needsSnapshot) return
+    this.state.needsSnapshot = true
+    this.dispatch("snapshot-required", { surfaceId: this.surfaceId, sequence: this.state.nextSequence })
+  }
+
+  withinByteLimit(source) {
+    const limit = Number(this.element.dataset.openuiStreamByteLimit || 1048576)
+    if (new TextEncoder().encode(source).byteLength <= limit) return true
+    this.state.streaming = false
+    this.state.completed = true
+    this.syncBusy()
+    this.handleError(Object.assign(new Error("OpenUI stream exceeds byte limit"), { code: "stream_too_large" }))
+    return false
   }
 
   // --- Actions -------------------------------------------------------------
 
   async dispatchAction(payload = {}) {
     const body = {
-      action: payload.action ?? payload.name,
-      args: payload.args ?? {},
+      action: payload.action ?? payload.name ?? payload.type,
+      args: payload.args ?? payload.params ?? {},
       surface_id: this.surfaceId,
       version: this.version,
       idempotency_key: payload.idempotency_key ?? this.newIdempotencyKey(),
@@ -198,13 +238,14 @@ export default class extends Controller {
   // Every browser `Query()`/`Mutation()` tool call is routed to the same
   // server endpoint; the host registry decides what is permitted.
   toolProvider() {
-    return new Proxy(
+    const reserved = new Set([ "callTool", "then", "__proto__", "constructor", "prototype", "toJSON" ])
+    return this.tools ||= new Proxy(
       {},
       {
-        has: () => true,
+        has: (_target, name) => typeof name === "string" && !reserved.has(name),
         get: (_target, name) => {
-          if (typeof name !== "string") return undefined
-          return (args) => this.dispatchAction({ action: name, args: args ?? {} })
+          if (typeof name !== "string" || reserved.has(name)) return undefined
+          return (args) => this.dispatchAction({ action: name, args: args ?? {} }).then((result) => result.value)
         },
       }
     )
@@ -246,6 +287,7 @@ export default class extends Controller {
 
   get surfaceId() { return this.element.dataset.openuiSurfaceId }
   get messageId() { return this.element.dataset.openuiMessageId || this.surfaceId }
+  get libraryVersion() { return this.element.dataset.openuiLibraryVersion }
   get version() { return Number(this.element.dataset.openuiVersion || 0) }
   get streaming() { return this.element.dataset.openuiStreaming === "true" }
   get actionsUrl() { return this.element.dataset.openuiActionsUrl }

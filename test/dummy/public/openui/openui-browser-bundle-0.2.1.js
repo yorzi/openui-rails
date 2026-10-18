@@ -39,7 +39,7 @@
     actionButton.setAttribute("data-openui-action", "do.thing")
     actionButton.textContent = "action"
     actionButton.addEventListener("click", () => {
-      if (props.onAction) props.onAction({ action: "do.thing", args: { x: 1 } })
+      if (props.onAction) props.onAction({ type: "do.thing", params: { x: 1 }, humanFriendlyMessage: "Run action" })
     })
     wrapper.appendChild(actionButton)
 
@@ -49,7 +49,12 @@
     toolButton.textContent = "tool"
     toolButton.addEventListener("click", () => {
       if (props.toolProvider && props.toolProvider.Lookup) {
-        props.toolProvider.Lookup({ q: "x" })
+        // Match the real Renderer's MCP-vs-function-map detection.
+        const provider = props.toolProvider
+        const request = typeof provider.callTool === "function"
+          ? provider.callTool({ name: "Lookup", arguments: { q: "x" } })
+          : provider.Lookup({ q: "x" })
+        request.then((result) => { document.body.dataset.openuiToolValue = JSON.stringify(result) })
       }
     })
     wrapper.appendChild(toolButton)
