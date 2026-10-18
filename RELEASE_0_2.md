@@ -43,5 +43,21 @@ its distinct pre-release artifact checksum.
 
 The [release-triggered deployment](https://github.com/yorzi/openui-rails/actions/runs/39132577711)
 built 0.2.0 and reported success, but hosted verification still returned the
-previous stable 0.1.0 page. A new documentation commit triggers a fresh deployment.
-Hosted content verification remains pending in this record until that completes.
+previous stable 0.1.0 page. The follow-up commit `1247236` triggered a
+[fresh successful deployment](https://github.com/yorzi/openui-rails/actions/runs/39132881709).
+Subsequent hosted checks confirmed the stable version selector and installation
+command both name 0.2.0. The page was also checked in a real browser.
+
+All 12 hosted checks returned HTTP 200 with the expected contents:
+
+- Stable Getting Started, Upgrading, What's New in 0.2, and Release History.
+- Setup Diagnostics and Library and Prompt Contract.
+- The generated API reference.
+- Next Getting Started and Upgrading, both following `main`.
+- Stable and next `llms.txt`, with the matching channel names and guide links.
+- The sitemap, including the new release guide.
+
+The [follow-up CI](https://github.com/yorzi/openui-rails/actions/runs/39132881692)
+also passed. All temporary test servers and browser sessions were stopped.
+The release tag and RubyGems artifact remain unchanged by these documentation
+records.
