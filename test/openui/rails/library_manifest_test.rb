@@ -42,6 +42,20 @@ module OpenUI
         assert_equal %w[refresh], manifest.action_names
       end
 
+      test "extracts component names from the actual pinned upstream spec" do
+        manifest = LibraryManifest.parse(DefaultLibrary.files.fetch("library.spec.json"))
+
+        assert_equal manifest.document.fetch("components").keys, manifest.component_names
+        assert_includes manifest.component_names, "TextContent"
+      end
+
+      test "extracts names from name-keyed function and action collections" do
+        manifest = LibraryManifest.build({ "functions" => { "Lookup" => {} }, "actions" => { "refresh" => {} } })
+
+        assert_equal [ "Lookup" ], manifest.function_names
+        assert_equal [ "refresh" ], manifest.action_names
+      end
+
       test "fingerprint is stable regardless of key order" do
         reordered = JSON.parse(JSON.generate(DOCUMENT))
         reordered = reordered.to_a.reverse.to_h

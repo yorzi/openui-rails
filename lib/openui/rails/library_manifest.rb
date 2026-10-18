@@ -123,7 +123,7 @@ module OpenUI
       # Human-readable identifier, e.g. "support@1.2.0+1a2b3c4d5e6f".
       attr_reader :identifier
 
-      # Return the names declared in the components collection.
+      # Return names from an array or name-keyed components collection.
       #
       # @return [Array<String>]
       def component_names = names_for(:components)
@@ -178,6 +178,7 @@ module OpenUI
         keys = COLLECTION_KEYS.fetch(collection)
         keys.each do |key|
           value = document[key]
+          return value.keys if value.is_a?(Hash)
           next unless value.is_a?(Array)
 
           return value.filter_map { |entry| name_of(entry) }

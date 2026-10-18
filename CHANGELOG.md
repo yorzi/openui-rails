@@ -24,6 +24,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The install generator leads with the default chat library and setup checks.
   Custom libraries retain the pinned CLI path and require a matching runtime.
 
+### Fixed
+
+- Manifest name queries now read name-keyed collections used by the official
+  default-library spec, as well as the previously supported array format.
+  Fingerprint calculation is unchanged.
+
 ## [0.1.0] - 2026-10-18
 
 ### Fixed

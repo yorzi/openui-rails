@@ -60,6 +60,14 @@ builder.to_h
 
 If you change the component library, regenerate both files and ensure new responses carry the new fingerprint. Do not relabel old responses as if they were generated from the new prompt.
 
+To inspect declared names, use the manifest queries. They accept array
+collections and name-keyed maps, including the pinned runtime's spec:
+
+```ruby
+manifest = OpenUI::Rails.configuration.library_manifest
+manifest.component_names.include?("TextContent") # => true for the default library
+```
+
 ## Next Steps
 
 * [Runtime Assets]({% link _core_features/runtime-assets.md %}) - install the matching browser runtime.
