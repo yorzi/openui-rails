@@ -10,10 +10,19 @@ module OpenUI
     # exposes `id` (and, optionally, `version`, `library_version`, `response`,
     # `context`, `message_id`).
     class Surface
+      # Surface values copied from an explicit object, hash, or host record.
       ATTRIBUTES = %i[id version library_version response context streaming message_id].freeze
 
       attr_reader(*ATTRIBUTES)
 
+      # Coerce a host record, hash, or existing surface into a new Surface.
+      # Non-nil overrides replace values extracted from the input.
+      #
+      # @param value [Surface, Hash, #id, nil]
+      #
+      # @param overrides [Hash] surface attribute overrides
+      #
+      # @return [Surface]
       def self.coerce(value = nil, **overrides)
         attributes = extract(value).merge(overrides.compact)
         new(**attributes)
@@ -47,6 +56,23 @@ module OpenUI
       end
       private_class_method :extract_record
 
+      # Build an immutable surface snapshot for the browser mount.
+      #
+      # @param id [String, #to_s] stable opaque identifier
+      #
+      # @param version [Integer, nil] non-negative revision used for stale-action checks
+      #
+      # @param library_version [String, nil] fingerprint of the browser library manifest
+      #
+      # @param response [String, nil] OpenUI Lang source rendered by the browser
+      #
+      # @param context [Object, nil] JSON-compatible initial state
+      #
+      # @param streaming [Boolean] whether a response is still streaming
+      #
+      # @param message_id [String, nil] stream identity; defaults to id
+      #
+      # @return [Surface]
       def initialize(id:, version: 0, library_version: nil, response: nil, context: nil,
                      streaming: false, message_id: nil)
         raise ArgumentError, "surface id is required" if id.nil? || id.to_s.empty?
@@ -65,8 +91,14 @@ module OpenUI
         freeze
       end
 
+      # Whether the host says this surface is still receiving a response.
+      #
+      # @return [Boolean]
       def streaming? = @streaming
 
+      # Return the surface fields as a symbol-keyed hash.
+      #
+      # @return [Hash]
       def to_h
         {
           id: id, version: version, library_version: library_version,
@@ -79,10 +111,18 @@ module OpenUI
       # values are omitted so the controller can rely on presence.
       #
       # Every value is deliberately a String. DOM data attributes are strings,
-      # and Rails only JSON-coerces *non-String* values — a path that broke on
+      # and Rails only JSON-coerces *non-String* values. This path broke on
       # Rails 8.0 with json >= 3.1 (ActiveSupport passes a `quirks_mode:`
       # keyword the gem removed). Emitting strings keeps rendering independent
       # of ActiveSupport's JSON encoder.
+      #
+      # @param stream [Boolean] mark this mount as streaming
+      #
+      # @param actions_endpoint [String] host engine action URL
+      #
+      # @param initial_state [Object, nil] JSON-compatible state override
+      #
+      # @return [Hash] HTML data attributes with string values
       def to_mount_data(stream: false, actions_endpoint:, initial_state: nil)
         {
           controller: "openui",

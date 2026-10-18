@@ -31,6 +31,10 @@ module OpenUI
       class << self
         # Build from the current (or given) configuration, reading the prompt
         # and library manifest from disk.
+        #
+        # @param configuration [Configuration]
+        # @return [PromptBuilder]
+        # @raise [ManifestError] when the manifest or prompt cannot be read
         def load(configuration = OpenUI::Rails.configuration)
           manifest = configuration.library_manifest
           raise ManifestError, "library_spec_path is not configured" if manifest.nil?
@@ -58,6 +62,12 @@ module OpenUI
 
       attr_reader :manifest, :library_prompt, :instructions
 
+      # Create a builder from a manifest and optional generated prompt text.
+      #
+      # @param manifest [LibraryManifest]
+      # @param library_prompt [String, nil]
+      # @param instructions [String] framing rules supplied to the model
+      # @return [PromptBuilder]
       def initialize(manifest:, library_prompt: nil, instructions: DEFAULT_INSTRUCTIONS)
         @manifest = manifest
         @library_prompt = library_prompt
@@ -65,23 +75,33 @@ module OpenUI
       end
 
       # The complete system instruction for the model.
+      #
+      # @return [String]
       def system_instruction
         @system_instruction ||= [ instructions, library_prompt ].compact.join("\n\n").strip
       end
 
       # Fingerprint of the prompt *and* the library revision it targets. This is
       # what a response is persisted with, so a later render can detect drift.
+      #
+      # @return [String] a scheme-tagged SHA-256 fingerprint
       def fingerprint
         @fingerprint ||= "sha256:#{Digest::SHA256.hexdigest("#{manifest.fingerprint}\n#{system_instruction}")}"
       end
 
       # True when a previously persisted fingerprint still matches this builder.
+      #
+      # @param other_fingerprint [String, nil]
+      # @return [Boolean]
       def matches?(other_fingerprint)
         return false if other_fingerprint.nil?
 
         other_fingerprint.to_s == fingerprint
       end
 
+      # Return the library and prompt provenance values.
+      #
+      # @return [Hash]
       def to_h
         {
           library: manifest.identifier,

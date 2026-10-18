@@ -3,9 +3,10 @@
 ## Outcome
 
 The audit found real defects despite the original green test suite. The fixes
-below have regression coverage. The gem is a verified **release candidate**,
-not an approved or published release. No audit can establish the absence of all
-bugs, and the human publication gates remain open.
+below have regression coverage. The owner authorized publication of `0.1.0`
+on 2026-10-18. Publication still requires the selected tag's complete CI to
+pass and the protected publishing workflow to succeed. This audit establishes
+the specific behaviors below, not the absence of all bugs.
 
 ## Confirmed defects corrected
 
@@ -41,7 +42,15 @@ Local environment: Ruby 3.3.5, Rails 8.1.4, Chrome through Selenium.
   click-triggered Mutation, and unknown-component rejection.
 - Real Turbo Streams broadcast over Action Cable, plus Turbo visit/back restoration.
 - RubyLLM 2.1.1 with real OpenAI chat-completions SSE parsing and mocked HTTP:
-  `1 run, 7 assertions`, no failures or errors. No paid provider was called.
+  `1 run, 7 assertions`, no failures or errors. The deterministic test made no
+  paid provider calls.
+- Live-provider smoke (2026-10-18): one synthetic prompt streamed through the
+  gem adapter with RubyLLM 2.1.1, OpenRouter, `openai/gpt-4.1-mini`, and the
+  `:complete` strategy. A 16-token output cap was set. The first sandboxed
+  attempt returned `stream_failed` with no delta; the network-enabled retry
+  emitted one 2-byte delta and a completed frame. The account's usage ledger
+  and exact charge were not checked. Evidence is limited to this OpenRouter
+  path/model; direct OpenAI and other provider/model paths remain unverified.
 - Checksum-locked npm runtime fetch, including CSS and upstream license: passed.
 - Built artifact in a fresh generated Rails host: generator, eager load, and HTTP render passed.
 - RuboCop: clean. JS syntax checks: passed.
@@ -55,17 +64,24 @@ Local environment: Ruby 3.3.5, Rails 8.1.4, Chrome through Selenium.
 Tests establish these specific behaviors, not universal provider compatibility,
 complete accessibility, legal clearance, or an absence of future vulnerabilities.
 
-## Publication gates still open
+## Release setup on 2026-10-18
 
-1. Owner approval of name/branding and the complete transitive browser notice
-   inventory. The previous all-MIT assumption was wrong: lucide-react is ISC.
-2. One authorized, budget-capped live-provider smoke run. None was performed;
-   mocked HTTP does not validate credentials, billing, or live provider behavior.
-3. Dated release notes and final owner approval. The version remains 0.1.0 with
-   unreleased notes; `bin/check-release` deliberately rejects publication metadata.
-4. GitHub release environment reviewers, RubyGems credentials, and repository
-   visibility/support decisions. The audit found no configured environments or
-   repository secrets. It did not add any or change repository visibility.
+- The owner explicitly authorized publication, public repository visibility,
+  and RubyGems OIDC trust for `yorzi/openui-rails`, `release.yml`, environment
+  `release`.
+- The repository is public. Security reports go to the address in `SECURITY.md`;
+  public support uses GitHub Issues.
+- RubyGems has a pending Trusted Publisher for the exact workflow and
+  environment. The first successful publication activates the gem's publisher.
+- The GitHub `release` environment requires approval by `yorzi`, allows the
+  `main` branch only, and disallows administrator bypass. Self-review remains
+  available for the single maintainer.
+- Dated `0.1.0` notes are in `CHANGELOG.md`. Gem and documentation versions
+  are checked together before packaging.
+- The built gem excludes the upstream browser bundle. A host that redistributes
+  the fetched bundle must review its transitive notices, including ISC-licensed
+  `lucide-react`. The gem's fetch task retains upstream legal comments and the
+  upstream license file. This is not a legal-clearance claim.
 
 ## Boundaries hosts must enforce
 
@@ -82,5 +98,5 @@ complete accessibility, legal clearance, or an absence of future vulnerabilities
   support is claimed. No human screen-reader certification is claimed.
 - API-only Rails authentication/CSRF integration is not covered by this release.
 
-Do not describe this candidate as bug-free or human-approved. Follow
-[RELEASING.md](RELEASING.md) before publishing.
+The owner's publication authorization is not an independent legal, security,
+or accessibility certification. Follow [RELEASING.md](RELEASING.md) for each release.

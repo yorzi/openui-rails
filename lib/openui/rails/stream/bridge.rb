@@ -13,6 +13,15 @@ module OpenUI
       class Bridge
         attr_reader :message_id, :library_version
 
+        # Create a bridge with message metadata and configured byte limits.
+        #
+        # @param message_id [String] stable id shared by all frames in the stream
+        #
+        # @param library_version [String, nil] manifest fingerprint attached to frames
+        #
+        # @param configuration [Configuration]
+        #
+        # @return [Bridge]
         def initialize(message_id:, library_version: nil, configuration: OpenUI::Rails.configuration)
           @message_id = message_id
           @library_version = library_version
@@ -20,11 +29,18 @@ module OpenUI
         end
 
         # @param source [#each] yields String chunks
+        #
         # @return [Enumerator<Envelope>]
         def envelopes(source)
           to_enum(:each_envelope, source)
         end
 
+        # Yield ordered envelopes for every chunk from a pull-based source.
+        # Provider errors become a structured error envelope. Exceptions raised
+        # by the consumer block propagate to the caller.
+        #
+        # @param source [#each] yields String chunks
+        # @yieldparam envelope [Envelope]
         def each_envelope(source)
           writer = writer()
           source = source.to_enum
@@ -47,6 +63,8 @@ module OpenUI
         end
 
         # Build a stateful writer for push-based providers.
+        #
+        # @return [Writer]
         def writer
           Writer.new(
             message_id: message_id,
@@ -61,6 +79,19 @@ module OpenUI
         class Writer
           attr_reader :sequence
 
+          # Create a writer that buffers chunks up to the pending byte limit.
+          #
+          # @param message_id [String]
+          #
+          # @param library_version [String, nil]
+          #
+          # @param pending_byte_limit [Integer]
+          #
+          # @param stream_byte_limit [Integer]
+          #
+          # @param on_error [#call, nil]
+          #
+          # @return [Writer]
           def initialize(message_id:, library_version: nil, pending_byte_limit:, stream_byte_limit:, on_error: nil)
             Envelope.completed(message_id: message_id, sequence: 0, library_version: library_version)
             unless pending_byte_limit.is_a?(Integer) && stream_byte_limit.is_a?(Integer) &&
@@ -78,6 +109,11 @@ module OpenUI
             @terminated = false
           end
 
+          # Append a chunk and return a delta once the pending threshold is reached.
+          # A chunk that exceeds the total stream limit returns an error envelope.
+          #
+          # @param chunk [String, nil]
+          #
           # @return [Array<Envelope>] zero or more envelopes to emit
           def push(chunk)
             return [] if @terminated || chunk.nil?
@@ -95,7 +131,9 @@ module OpenUI
             [ flush_delta ]
           end
 
-          # @return [Array<Envelope>] the final delta (if any) and completion
+          # Flush pending text and emit the completion envelope once.
+          #
+          # @return [Array<Envelope>] the final delta, if any, and completion
           def finish
             return [] if @terminated
 
@@ -110,6 +148,12 @@ module OpenUI
           end
 
           # Structured, PII-free error envelope for a provider/consumer failure.
+          #
+          # @param error [Exception]
+          #
+          # @param code [String] a supported stream error code
+          #
+          # @return [Envelope, nil] nil when the writer already terminated
           def error_for(error, code: "stream_failed")
             return nil if @terminated
 

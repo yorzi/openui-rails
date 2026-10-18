@@ -8,7 +8,7 @@ module OpenUI
         #
         # The stream name is supplied by the host (the Gem does not invent a
         # tenant-scoping scheme). Pair it with a channel that dispatches each
-        # received payload as an `openui:envelope` event on the page — see the
+        # received payload as an `openui:envelope` event on the page. See the
         # "Transports" section of the README. Authorization for the subscription
         # stays in the host's channel.
         #

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require_relative "../lib/openui/rails/version"
+require "yaml"
 
 expected = "v#{OpenUI::Rails::VERSION}"
 tag = ENV.fetch("RELEASE_TAG", ARGV.first.to_s)
@@ -10,5 +11,9 @@ abort "release tag #{tag.inspect} does not match #{expected}" unless tag == expe
 changelog = File.read(File.expand_path("../CHANGELOG.md", __dir__))
 heading = /^## \[#{Regexp.escape(OpenUI::Rails::VERSION)}\] - \d{4}-\d{2}-\d{2}$/
 abort "CHANGELOG.md needs dated release notes for #{expected}" unless changelog.match?(heading)
+
+docs = YAML.load_file(File.expand_path("../docs/_config.yml", __dir__))
+abort "Docs version must match #{OpenUI::Rails::VERSION}" unless docs["version"].to_s == OpenUI::Rails::VERSION
+abort "Docs must mark the version as released" unless docs["released"] == true
 
 puts "Release metadata verified for #{expected}"

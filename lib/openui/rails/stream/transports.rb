@@ -16,7 +16,12 @@ module OpenUI
         # Build a transport from a configured name.
         #
         # @param name [Symbol] :action_cable, :turbo / :turbo_streams or :memory
+        #
         # @param options [Hash] forwarded to the transport constructor
+        #
+        # @return [ActionCable, TurboStreams, Memory]
+        #
+        # @raise [ConfigurationError] when the name is unsupported
         def build(name, **options)
           case name.to_sym
           when :action_cable

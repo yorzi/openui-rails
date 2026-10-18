@@ -1,26 +1,38 @@
 # Releasing openui-rails
 
-No release has been published. Do not publish until the owner clears the gates
-below. This is an unofficial integration, not a Thesys product.
+The owner authorized the initial `0.1.0` release on 2026-10-18. This is an
+unofficial integration, not a Thesys product. Publish only a tag whose complete
+CI suite and release metadata checks pass.
 
-## Publication gates
+## Publishing configuration
 
-- [ ] Review [AUDIT.md](AUDIT.md) and the complete CI result for the release commit.
-- [ ] Confirm the RubyGems name, branding, and upstream notice obligations.
-- [ ] Review the exact browser bundle's transitive licenses. See [notices](THIRD_PARTY_NOTICES.md).
-- [ ] Complete one explicitly authorized, budget-capped live-provider smoke run.
-- [ ] Review release notes and destructive-action approval policies.
-- [ ] Confirm the repository visibility and public support/security contact plan.
-- [ ] Configure the GitHub `release` environment with required reviewers.
-- [ ] Store a least-privilege `RUBYGEMS_API_KEY` in that environment.
+The public repository is `yorzi/openui-rails`. Its GitHub `release` environment
+requires approval by `yorzi`, accepts the `main` branch, and disallows
+administrator bypass. Self-review is available for the single maintainer.
+RubyGems trusts workflow `release.yml` and environment `release` through GitHub
+OIDC. No long-lived RubyGems API key is stored in GitHub.
 
-An environment name in a workflow does not configure reviewers. The audit found
-no repository environments or secrets on 2026-10-18. No credentials were added.
+The initial pending publisher was registered on 2026-10-18. Pending publishers
+expire if unused; check the RubyGems settings before a delayed first publish.
+The first successful publication creates the gem and activates its publisher.
+
+Before each release, review [AUDIT.md](AUDIT.md), the dated changelog section,
+and the complete CI result for the exact commit. Preserve third-party notices.
+The gem excludes the upstream browser bundle; host applications that
+redistribute the fetched bundle must review that exact bundle's complete
+transitive license inventory. See [notices](THIRD_PARTY_NOTICES.md).
+
+The live smoke completed on 2026-10-18 through OpenRouter with RubyLLM 2.1.1
+and `openai/gpt-4.1-mini`. It used a synthetic prompt, `:complete` streaming,
+and a 16-token output cap. See [AUDIT.md](AUDIT.md) for the result and limits.
 
 ## Prepare the candidate
 
 1. Set the version in `lib/openui/rails/version.rb`.
 2. Add a dated `## [x.y.z] - YYYY-MM-DD` changelog section.
+   Set the same version and `released: true` in `docs/_config.yml`, update
+   What's New, release history, and upgrading instructions, then run the docs
+   check and build.
 3. Run the full verification suite described in [CONTRIBUTING.md](CONTRIBUTING.md).
 4. Run the release metadata check:
 
@@ -54,11 +66,15 @@ gh workflow run release.yml --ref main -f tag=vx.y.z -F publish=true
 
 The workflow tests the selected tag again. The publish job waits for the
 configured environment reviewers. It downloads that run's verified artifact,
-pushes it to `https://rubygems.org`, and creates a **draft** GitHub release.
+obtains a short-lived, gem-scoped RubyGems credential through OIDC, and pushes
+the artifact to `https://rubygems.org`. A separate job with GitHub release
+write permission then creates a **draft** GitHub release.
 
-Verify the RubyGems version. Review the GitHub draft before making it public.
-The current `0.1.0` changelog is still unreleased, so `bin/check-release`
-intentionally refuses to approve that tag.
+The draft includes the verified gem, its SHA-256 checksum, and the dated
+changelog section. Verify the RubyGems version and review that draft before
+making it public.
+`CHANGELOG.md` now contains the dated `0.1.0` notes, and
+`RELEASE_TAG=v0.1.0 ruby bin/check-release` accepts the release metadata.
 
 ## Recovery
 

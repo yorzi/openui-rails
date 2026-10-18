@@ -17,6 +17,7 @@ module OpenUI
       #   6. authorizer allows it
       #   7. idempotency claim (duplicates never execute twice)
       class Dispatcher
+        # Outcome returned after an action executes or replays.
         Result = Struct.new(:action, :surface_id, :version, :value, :replayed, keyword_init: true) do
           def replayed? = replayed == true
 
@@ -25,6 +26,10 @@ module OpenUI
           end
         end
 
+        # Build a dispatcher from the process-wide configuration.
+        #
+        # @param configuration [Configuration]
+        # @return [Dispatcher]
         def self.from_configuration(configuration = OpenUI::Rails.configuration)
           new(
             registry: configuration.action_registry,
@@ -36,6 +41,21 @@ module OpenUI
           )
         end
 
+        # Build a dispatcher with explicit action and replay dependencies.
+        #
+        # @param registry [Registry]
+        #
+        # @param idempotency_store [#claim, #record]
+        #
+        # @param idempotency_ttl [Numeric]
+        #
+        # @param authorize_action [#call, nil]
+        #
+        # @param surface_resolver [#call, nil]
+        #
+        # @param idempotency_scope [#call, nil]
+        #
+        # @return [Dispatcher]
         def initialize(registry:, idempotency_store:, idempotency_ttl:, authorize_action: nil, surface_resolver: nil,
                        idempotency_scope: nil)
           @registry = registry
@@ -47,7 +67,17 @@ module OpenUI
         end
 
         # @param payload [Hash, Submission]
+        #
+        # @param actor [Object, nil] authenticated host actor
+        #
+        # @param surface [Object, nil] already-resolved host surface
+        #
+        # @param tenant [Object, nil] trusted host tenant identity
+        #
+        # @param context [Hash] host-supplied request context
+        #
         # @return [Result]
+        #
         # @raise [OpenUI::Rails::Error] on any failed gate, before side effects
         def call(payload, actor: nil, surface: nil, tenant: nil, context: {})
           submission = Submission.parse(payload)

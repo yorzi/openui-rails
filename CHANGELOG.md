@@ -6,7 +6,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Fixed during pre-publication audit
+## [0.1.0] - 2026-10-18
+
+### Fixed
 
 - Scope idempotency to server actor/tenant identity and bind replay digests to
   the full request. Distinguish pending claims from completed nil results and
@@ -60,5 +62,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `aria-busy` on the mount element tracks the streaming state, and an optional
   `label:` exposes the mount as a named `region` landmark.
 - Tag-driven release workflow and `RELEASING.md`.
+- Versioned guides and an RDoc API reference at
+  `https://openui-rails.wangyaodi.com`, deployed with GitHub Pages.
+- Gem-scoped RubyGems Trusted Publishing through GitHub OIDC, with a protected
+  release environment and verified artifact handoff.
 
-[Unreleased]: https://github.com/yorzi/openui-rails/commits/main
+[Unreleased]: https://github.com/yorzi/openui-rails/compare/v0.1.0...main
+[0.1.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.1.0

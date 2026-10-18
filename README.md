@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/yorzi/openui-rails/actions/workflows/ci.yml/badge.svg)](https://github.com/yorzi/openui-rails/actions/workflows/ci.yml)
 
+[Documentation](https://openui-rails.wangyaodi.com/)
+
 Render model-generated, streaming, interactive **OpenUI Lang** UI inside an
 existing Rails application — without migrating the whole frontend to a
 React/Next.js SPA and without hand-writing the stream, state and action glue
@@ -56,7 +58,7 @@ there is no `@latest` or floating CDN range.
 
 ```ruby
 # Gemfile
-gem "openui-rails"
+gem "openui-rails", "~> 0.1.0"
 ```
 
 ```bash
@@ -429,8 +431,13 @@ CI runs unit/integration tests, deterministic browser tests, the real pinned
 OpenUI bundle, real Turbo/Action Cable delivery, a RubyLLM 2.1.1 SSE probe,
 dependency advisory checks, and a fresh-host test of the built gem.
 
-A paid live-provider run and human release/naming/license approval remain
-required before publication. No release has been published.
+A live-provider smoke completed through OpenRouter on 2026-10-18; see
+[`AUDIT.md`](AUDIT.md) for its scope and evidence. Releases use the verified
+artifact, RubyGems Trusted Publishing, and the protected GitHub `release`
+environment. See [RubyGems](https://rubygems.org/gems/openui-rails) and
+[GitHub Releases](https://github.com/yorzi/openui-rails/releases) for published
+versions. Hosts that redistribute the fetched browser bundle must review its
+complete transitive notices as described in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Development
 

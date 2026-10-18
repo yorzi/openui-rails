@@ -7,10 +7,15 @@ module OpenUI
       # handlers registered here are reachable: there is no reflection from a
       # model-provided name to a Ruby method.
       class Registry
+        # Immutable definition stored by the registry and passed to dispatch.
         Definition = Struct.new(:name, :handler, :authorize, :schema, :confirmation, :description, keyword_init: true)
 
+        # Pattern accepted for action names sent over the wire.
         NAME_PATTERN = /\A[a-zA-Z][a-zA-Z0-9_.:-]{0,63}\z/
 
+        # Create an empty action allowlist.
+        #
+        # @return [Registry]
         def initialize
           @definitions = {}
           @mutex = Mutex.new
@@ -19,11 +24,19 @@ module OpenUI
         # Register a callable action.
         #
         # @param name [String, Symbol] the wire name the surface emits
+        #
         # @param handler [#call] receives an Invocation, performs the work
+        #
         # @param authorize [#call, nil] receives an Invocation, returns truthy
         #   when allowed. Required at dispatch time (fail closed).
+        #
         # @param schema [Schema, Hash, #call, nil] arg validation
+        #
         # @param confirmation [Boolean] require `confirmed: true` on the payload
+        #
+        # @param description [String, nil] text describing the action
+        #
+        # @return [Definition]
         def register(name, handler: nil, authorize: nil, schema: nil, confirmation: false, description: nil, &block)
           handler ||= block
           raise ConfigurationError, "handler is required for action #{name.inspect}" unless handler.respond_to?(:call)
@@ -44,6 +57,13 @@ module OpenUI
           definition
         end
 
+        # Find a registered action or raise when it is not allowlisted.
+        #
+        # @param name [String, Symbol]
+        #
+        # @return [Definition]
+        #
+        # @raise [UnknownActionError] when no action has this name
         def fetch(name)
           definition = @mutex.synchronize { @definitions[normalize_name(name)] }
           raise UnknownActionError, "unknown action #{name.inspect}" if definition.nil?
@@ -53,14 +73,25 @@ module OpenUI
           raise InvalidActionError, error.message
         end
 
+        # Whether an action name is present in the allowlist.
+        #
+        # @param name [String, Symbol]
+        #
+        # @return [Boolean]
         def registered?(name)
           @mutex.synchronize { @definitions.key?(normalize_name(name)) }
         end
 
+        # Return the registered action names.
+        #
+        # @return [Array<String>]
         def names
           @mutex.synchronize { @definitions.keys }
         end
 
+        # Remove all registered actions.
+        #
+        # @return [self]
         def clear!
           @mutex.synchronize { @definitions.clear }
           self

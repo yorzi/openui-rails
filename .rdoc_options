@@ -1,0 +1,14 @@
+---
+title: "OpenUI Rails"
+exclude:
+  - lib/tasks/
+  - lib/generators/
+  - \.json$
+footer_content:
+  Documentation:
+    Guides: https://openui-rails.wangyaodi.com/
+    Upgrading: https://openui-rails.wangyaodi.com/upgrading/
+  Resources:
+    GitHub: https://github.com/yorzi/openui-rails
+    Issues: https://github.com/yorzi/openui-rails/issues
+    Releases: https://github.com/yorzi/openui-rails/releases

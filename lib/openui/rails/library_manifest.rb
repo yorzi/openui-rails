@@ -31,7 +31,9 @@ module OpenUI
         # Load and validate a manifest from disk.
         #
         # @param path [String, Pathname]
+        #
         # @return [LibraryManifest]
+        #
         # @raise [ManifestError] when the file is missing, oversized or invalid
         def load(path)
           path = Pathname(path)
@@ -47,6 +49,11 @@ module OpenUI
         end
 
         # Parse and validate a manifest from a JSON string.
+        #
+        # @param json [String]
+        # @param source [String, nil] optional path or source label
+        # @return [LibraryManifest]
+        # @raise [ManifestError] when the string is oversized or invalid
         def parse(json, source: nil)
           raise ManifestError, "library spec must be a JSON string" unless json.is_a?(String)
           raise ManifestError, "library spec too large" if json.bytesize > MAX_BYTES
@@ -58,6 +65,10 @@ module OpenUI
         end
 
         # Validate an already-parsed document.
+        #
+        # @param document [Hash]
+        # @param source [String, nil] optional path or source label
+        # @return [LibraryManifest]
         def build(document, source: nil)
           unless document.is_a?(Hash)
             raise ManifestError, "library manifest must be a JSON object"
@@ -84,6 +95,13 @@ module OpenUI
 
       attr_reader :document, :name, :version, :source
 
+      # Create an immutable manifest and calculate its canonical fingerprint.
+      #
+      # @param document [Hash]
+      # @param name [String, nil]
+      # @param version [String, nil]
+      # @param source [String, nil]
+      # @return [LibraryManifest]
       def initialize(document:, name: nil, version: nil, source: nil)
         @document = JsonValue.copy(document)
         @name = name&.dup&.freeze
@@ -105,11 +123,25 @@ module OpenUI
       # Human-readable identifier, e.g. "support@1.2.0+1a2b3c4d5e6f".
       attr_reader :identifier
 
+      # Return the names declared in the components collection.
+      #
+      # @return [Array<String>]
       def component_names = names_for(:components)
+
+      # Return the names declared in the functions collection.
+      #
+      # @return [Array<String>]
       def function_names = names_for(:functions)
+
+      # Return the names declared in the actions collection.
+      #
+      # @return [Array<String>]
       def action_names = names_for(:actions)
 
       # Constant-time comparison of fingerprints for mismatch checks.
+      #
+      # @param other_fingerprint [String, nil]
+      # @return [Boolean]
       def matches?(other_fingerprint)
         return false if other_fingerprint.nil?
 
@@ -128,6 +160,9 @@ module OpenUI
         fingerprint.hash
       end
 
+      # Return the manifest's name, version, fingerprint, and source.
+      #
+      # @return [Hash]
       def to_h
         {
           name: name,

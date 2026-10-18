@@ -33,9 +33,10 @@ Their notices must accompany any redistributed bundle.
 
 The fetch task preserves the upstream license and the bundle's embedded legal
 comments. These do not establish that all transitive notice obligations have
-been satisfied. Before redistribution, the owner must review the complete
-dependency/license inventory for the exact bundle. That review remains a
-publication gate; this document does not claim legal clearance.
+been satisfied. The gem package does not include that browser bundle. Before
+redistributing the fetched bundle, the host application's owner must review
+the complete dependency/license inventory for that exact bundle. This document
+does not claim legal clearance.
 
 ## Naming
 
