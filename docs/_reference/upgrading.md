@@ -17,7 +17,7 @@ After reading this guide, you will know:
 
 ## Upgrade from 0.2.0
 
-{% if site.docs_unreleased %}Version `{{ site.version }}` is an unpublished development candidate. To test the default branch after it is pushed, use a Git dependency:
+{% if site.docs_unreleased %}{% unless site.released %}Version `{{ site.version }}` is an unpublished development candidate. {% endunless %}This channel follows `main`. After the candidate is pushed, test it with a Git dependency:
 
 ```ruby
 gem "openui-rails", git: "https://github.com/yorzi/openui-rails", branch: "main"

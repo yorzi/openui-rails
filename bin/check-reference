@@ -41,6 +41,7 @@ end
 Dir.mktmpdir("openui-reference-") do |temporary|
   host = options[:gem] ? (options[:host] || File.join(temporary, "host")) : File.join(root, "test/dummy")
   environment = {
+    "BUNDLE_GEMFILE" => File.expand_path(Bundler.default_gemfile),
     "RAILS_ENV" => "test", "OPENUI_REFERENCE" => "1", "OPENUI_REFERENCE_TEST_DATABASE" => "1",
     "DATABASE_URL" => "sqlite3:#{temporary}/reference.sqlite3", "OPENUI_REAL_RUNTIME_DIR" => options[:runtime],
     "OPENUI_BROWSER_ARTIFACTS" => artifacts, "SE_CACHE_PATH" => File.join(root, "tmp/selenium"), "SE_AVOID_STATS" => "true",
@@ -61,7 +62,8 @@ Dir.mktmpdir("openui-reference-") do |temporary|
     else
       generated = host
     end
-    run!("bundle", "exec", "rails", "new", generated, "--minimal", "--skip-bundle", "--skip-git", directory: temporary)
+    run!("bundle", "exec", "rails", "new", generated, "--minimal", "--skip-bundle", "--skip-git", directory: temporary,
+      environment: { "BUNDLE_GEMFILE" => File.expand_path(Bundler.default_gemfile) })
     if options[:host]
       FileUtils.cp_r(Dir[File.join(generated, "*")], host)
       environment["DATABASE_URL"] = "sqlite3:#{host}/storage/reference-test.sqlite3"
@@ -117,6 +119,10 @@ Dir.mktmpdir("openui-reference-") do |temporary|
   end
   options[:gem] ? Bundler.with_unbundled_env(&work) : work.call
   if options[:host]
+    reset = "[SupportDesk::Receipt, SupportDesk::Conversation, SupportDesk::Ticket, SupportDesk::User].each(&:delete_all); SupportDesk::Demo.seed!"
+    Bundler.with_unbundled_env do
+      run!("bundle", "exec", "ruby", "bin/rails", "runner", reset, directory: host, environment: environment)
+    end
     puts "Retained synthetic host: #{host} (no server is running)."
     puts "Use DATABASE_URL=sqlite3:#{host}/storage/reference-test.sqlite3 with RAILS_ENV=test for this retained database."
   end

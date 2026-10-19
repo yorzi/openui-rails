@@ -13,7 +13,7 @@ if ENV["OPENUI_REFERENCE_ARTIFACT"]
   abort "consumer loaded source checkout" unless File.realpath(Gem.loaded_specs.fetch("openui-rails").full_gem_path) == artifact
   abort "consumer loaded reference from source checkout" unless File.realpath(SupportDesk::Engine.root).start_with?(artifact + "/")
 end
-ActionController::Base.allow_forgery_protection = true
+abort "reference host must enable CSRF itself" unless ActionController::Base.allow_forgery_protection
 module ReferenceLoopbackPortProbe
   def free?(port)
     TCPServer.open("127.0.0.1", port) { true }
@@ -77,6 +77,7 @@ class ReferenceWorkflowTest < Minitest::Test
     assert_equal "Review this ticket", alice_conversation.reload.messages.last.fetch("text")
     find_button("Close ticket").send_keys(:enter)
     assert_text "closed"
+    assert_no_selector :button, "Close ticket"
     assert_equal "closed", alice_conversation.ticket.reload.status
     assert_equal 1, SupportDesk::Receipt.where(ticket_id: alice_conversation.ticket_id).count
     assert_empty find("#desk-error", visible: :all).text
@@ -195,6 +196,10 @@ class ReferenceWorkflowTest < Minitest::Test
       assert_equal 422, request("PATCH", path, body)["status"]
     end
     assert_equal 409, request("PATCH", path, { version: 9, state: {} })["status"]
+    original_state = alice_conversation.reload.form_state
+    blocked = { version: 0, state: { reply: { note: { value: "Blocked write", componentType: "Input" } } } }
+    assert_equal 422, request("PATCH", path, blocked, csrf: false)["status"]
+    assert_equal original_state, alice_conversation.reload.form_state
     response = request("POST", "/openui-rails/actions", action_payload, csrf: false)
     assert_equal 422, response["status"]
     assert_equal "csrf_failed", JSON.parse(response["text"]).dig("error", "code")

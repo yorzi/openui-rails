@@ -25,6 +25,7 @@ local assets and synthetic data. Chrome is required.
 ```sh
 bundle install
 bundle exec rake "app:openui:runtime:fetch[$PWD/tmp/real-runtime]"
+mkdir -p tmp/package
 bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.3.0.gem
 bin/check-reference --gem tmp/package/openui-rails-0.3.0.gem --runtime tmp/real-runtime
 ```
@@ -53,13 +54,18 @@ RAILS_ENV=test DATABASE_URL="sqlite3:$PWD/storage/reference-test.sqlite3" \
 ```
 
 Open `http://127.0.0.1:3000/support`. The check prints the retained directory and
-leaves no server running. The last command starts your review session; stop it
+leaves no server running. A retained host resets only its newly created
+synthetic reference records after the checks, so your review starts with open
+tickets. The last command starts your review session; stop it
 with Ctrl-C when you finish. The directory contains synthetic records and
 screenshots remain under the source repository's ignored `tmp/browser/` path.
 Sign in as Alice for an agent in the north tenant, Bob for the south tenant,
 or Reader for a read-only user. Accounts are deliberately synthetic and the
 reference routes accept loopback clients only. Replace this session code with
-your application's authentication before adapting the example.
+your application's authentication before adapting the example. The reference
+explicitly enables CSRF protection, including when the local server uses the
+test environment. Its browser driver checks this setting instead of enabling
+it on behalf of the application.
 
 ## Follow the ticket workflow
 

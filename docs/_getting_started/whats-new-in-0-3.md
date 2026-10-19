@@ -15,8 +15,10 @@ After reading this guide, you will know:
 * How to exercise the complete reference workflow without a provider.
 * How to restore persisted stream metadata and continue a conversation.
 
-Version `{{ site.version }}` is an unpublished development candidate. The
+{% unless site.released %}Version `{{ site.version }}` is an unpublished development candidate. The
 stable site remains on the latest published release.
+{% else %}Version `{{ site.version }}` adds the reference host and persisted stream restoration.
+{% endunless %}
 
 ## Run the reference workflow
 

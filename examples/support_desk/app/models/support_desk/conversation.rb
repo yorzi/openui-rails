@@ -22,13 +22,18 @@ module SupportDesk # :nodoc:
       with_lock do
         return [ snapshot ] if response.present?
 
+        controls = if ticket.reload.status == "closed"
+          'TextContent("Ticket is closed")'
+        else
+          'Buttons([Button("Close ticket", @Run(close))])'
+        end
         source = <<~LANG
           ticket = Query("ticket_lookup", {}, {title: "Loading ticket", status: "loading"})
           close = Mutation("close_ticket", {})
           note = FormControl("Private note", Input("note", "Write a note"))
           replyButtons = Buttons([Button("Continue conversation", @ToAssistant("Review this ticket"))])
           reply = Form("reply", replyButtons, [note])
-          controls = Buttons([Button("Close ticket", @Run(close))])
+          controls = #{controls}
           root = Card([CardHeader("Support ticket"), TextContent(ticket.title), TextContent(ticket.status), TextContent("Conversation turns: #{messages.length}"), reply, controls])
         LANG
         config = OpenUI::Rails::Configuration.new

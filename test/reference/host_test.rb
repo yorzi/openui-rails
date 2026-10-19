@@ -102,21 +102,20 @@ if ENV["OPENUI_REFERENCE"]
       SupportDesk::Demo.seed!
       @alice = SupportDesk::User.find_by!(name: "Alice")
       @conversation = SupportDesk::Conversation.find_by!(user_id: @alice.id)
-      post "/support/session", params: { name: "Alice" }
-      assert_response :redirect
+      sign_in_reference("Alice")
     end
 
     test "JSON state has one explicit shape on a generated Rails host" do
       path = "/support/conversations/#{@conversation.id}/state"
       state = { "reply" => { "note" => { "value" => "Saved note", "componentType" => "Input" } } }
-      patch path, params: { state: state, version: 0 }, as: :json
+      patch path, params: { state: state, version: 0 }, as: :json, headers: csrf_headers
       assert_response :no_content
       assert_equal state, @conversation.reload.form_state
-      patch path, params: { state: {}, version: 9 }, as: :json
+      patch path, params: { state: {}, version: 9 }, as: :json, headers: csrf_headers
       assert_response :conflict
-      patch path, params: { state: {}, version: "invalid" }, as: :json
+      patch path, params: { state: {}, version: "invalid" }, as: :json, headers: csrf_headers
       assert_response :unprocessable_content
-      patch path, params: { state: [], version: 0 }, as: :json
+      patch path, params: { state: [], version: 0 }, as: :json, headers: csrf_headers
       assert_response :unprocessable_content
       assert_equal state, @conversation.reload.form_state
     end
@@ -126,14 +125,30 @@ if ENV["OPENUI_REFERENCE"]
       get "/support/conversations/#{@conversation.id}/snapshot"
       assert_response :success
       assert_equal @conversation.message_id, response.parsed_body["message_id"]
-      post "/support/session", params: { name: "Bob" }
+      sign_in_reference("Bob")
       get "/support/conversations/#{@conversation.id}/snapshot"
       assert_response :not_found
-      post "/support/conversations/#{@conversation.id}/stream"
+      post "/support/conversations/#{@conversation.id}/stream", headers: csrf_headers
       assert_response :not_found
-      delete "/support/session"
+      delete "/support/session", headers: csrf_headers
       get "/support/conversations/#{@conversation.id}/snapshot"
       assert_response :unauthorized
+    end
+
+    private
+
+    def csrf_headers = { "X-CSRF-Token" => @csrf }
+
+    def sign_in_reference(name)
+      get "/support"
+      assert_response :success
+      token = Nokogiri::HTML(response.body).at_css("meta[name='csrf-token']")
+      assert token, "the reference host must emit its own CSRF token"
+      post "/support/session", params: { name: name }, headers: { "X-CSRF-Token" => token["content"] }
+      assert_response :redirect
+      follow_redirect!
+      assert_response :success
+      @csrf = Nokogiri::HTML(response.body).at_css("meta[name='csrf-token']")["content"]
     end
   end
 

@@ -2,7 +2,8 @@
 
 Proposed on 2026-10-18 against the `0.1.0` implementation. Version `0.2.0`
 was published on 2026-10-18; see [its release record](RELEASE_0_2.md).
-The `0.3.0` implementation is a local candidate under validation.
+The `0.3.0` implementation is a locally validated, unpublished candidate; see
+[its validation record](VALIDATION_0_3.md).
 Milestones after 0.3 are proposals, not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
 
@@ -87,8 +88,8 @@ with Ruby alone. The real-runtime suite compares them with the actual library.
 
 ## 0.3.0: prove a complete host workflow
 
-This milestone is implemented as an unpublished local candidate. Verification
-and remaining release gates are recorded in `VALIDATION_0_3.md`.
+This milestone is implemented and locally validated as an unpublished candidate.
+Verification and remaining release gates are in [VALIDATION_0_3.md](VALIDATION_0_3.md).
 
 Create one runnable reference host using the built gem, default library, SQLite,
 importmap, and Turbo Streams. Keep it small enough to read. A support-ticket

@@ -14,7 +14,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `bin/check-reference` verifies the maintained host or a fresh host using only
   the built artifact. Browser checks cover reload, lost envelopes, expired
   identity, cross-tenant access, read-only roles, stale/duplicate actions, CSRF,
-  keyboard activation, and mobile layout.
+  keyboard activation, and mobile layout. The reference host enables CSRF
+  itself, including during the documented test-environment review session.
 - `bin/check-release --candidate` validates unpublished candidate metadata
   without weakening the publication gate.
 - `Surface` and `openui_surface` accept persisted `next_sequence` and

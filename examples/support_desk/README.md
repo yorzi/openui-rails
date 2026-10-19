@@ -7,6 +7,7 @@ OpenUI runtime, SQLite, importmap, and HTTP Turbo Streams.
 From the repository:
 
 ```sh
+mkdir -p tmp/package
 bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.3.0.gem
 bin/check-reference --gem tmp/package/openui-rails-0.3.0.gem --runtime tmp/real-runtime
 ```
