@@ -12,7 +12,7 @@ bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.3
 bin/check-reference --gem tmp/package/openui-rails-0.3.0.gem --runtime tmp/real-runtime
 ```
 
-Fetch the runtime first. See the [complete guide](https://openui-rails.wangyaodi.com/next/reference-workflow/)
+Fetch the runtime first. See the [complete guide](https://openui-rails.wangyaodi.com/reference-workflow/)
 for setup, retained-host review, failure checks, and evidence limits. The
 reference is not enabled by requiring the gem. Keep the demo loopback-only;
 replace its synthetic login before adapting it to a real application.

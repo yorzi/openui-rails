@@ -1,6 +1,8 @@
 # 0.3.0 local candidate validation
 
-Date: 2026-10-19. Version 0.3.0 is an unpublished development candidate.
+Date: 2026-10-19. This record captures the unpublished 0.3.0 development
+candidate before release preparation. Its artifact checksum and local-only
+evidence remain historical; they do not identify the published artifact.
 This work prepares the implementation, local verification, gem package, and
 release documentation. It does not establish remote CI, hosted documentation,
 RubyGems publication, or live-provider success.

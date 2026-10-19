@@ -12,12 +12,12 @@ description: Move an OpenUI Rails application between documented gem releases wi
 
 After reading this guide, you will know:
 
-* How to prepare an application for 0.3.0.
+* How to upgrade an application to 0.3.0.
 * How to preserve existing library files and host authorization.
 
 ## Upgrade from 0.2.0
 
-{% if site.docs_unreleased %}{% unless site.released %}Version `{{ site.version }}` is an unpublished development candidate. {% endunless %}This channel follows `main`. After the candidate is pushed, test it with a Git dependency:
+{% if site.docs_unreleased %}{% unless site.released %}Version `{{ site.version }}` is an unpublished development candidate. {% endunless %}This channel follows `main`. To test the default branch, use a Git dependency:
 
 ```ruby
 gem "openui-rails", git: "https://github.com/yorzi/openui-rails", branch: "main"
@@ -43,9 +43,9 @@ Use `openui:library:prepare` only when you want the pinned default chat library.
 
 For older applications, first read the [0.2.0 migration notes](https://github.com/yorzi/openui-rails/blob/v0.2.0/docs/_reference/upgrading.md).
 
-## Prepare for 0.3.0
+## Update conversation action schemas
 
-On the development branch, `continue_conversation` receives optional `message`,
+In 0.3.0, `continue_conversation` receives optional `message`,
 `form_state`, and `form_name` arguments from the official runtime. Update a
 strict action schema to permit the metadata your handler consumes. Treat every
 field as untrusted input. Existing `params` and `context` are still forwarded.

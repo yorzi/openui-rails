@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-19
+
 ### Added
 
 - A packaged, opt-in support-ticket reference host with SQLite persistence,
@@ -114,6 +116,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Gem-scoped RubyGems Trusted Publishing through GitHub OIDC, with a protected
   release environment and verified artifact handoff.
 
-[Unreleased]: https://github.com/yorzi/openui-rails/compare/v0.2.0...main
+[Unreleased]: https://github.com/yorzi/openui-rails/compare/v0.3.0...main
+[0.3.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.3.0
 [0.2.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.2.0
 [0.1.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.1.0
