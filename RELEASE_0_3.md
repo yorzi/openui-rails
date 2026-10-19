@@ -46,5 +46,25 @@ must allow the runtime metadata they consume; see the upgrading guide.
 
 ## Documentation deployment
 
-Publication triggered the versioned documentation workflow. Hosted version and
-content checks are being completed. The downloaded-gem reference check passed.
+The [release-triggered deployment](https://github.com/yorzi/openui-rails/actions/runs/39243772090)
+completed successfully. An initial browser check still showed stable 0.2.0.
+The publication record and README update in commit `25574c0` triggered a
+[fresh successful deployment](https://github.com/yorzi/openui-rails/actions/runs/39243876815).
+Subsequent HTTP checks and a real-browser reload confirmed the stable version
+selector and installation command both name 0.3.0. The stable navigation exposes
+What's New in 0.3 and Reference Workflow. A screenshot remains in ignored
+`tmp/evidence/0.3.0-hosted-docs.png`.
+
+All 12 hosted checks returned HTTP 200 with the expected contents:
+
+- Stable Getting Started, Upgrading, What's New in 0.3, and Release History.
+- Reference Workflow and Setup Diagnostics.
+- The generated Surface API reference, including restored stream metadata.
+- Next Getting Started and Upgrading, following `main`.
+- Stable and next `llms.txt`, including the reference workflow links.
+- The sitemap, including the new release and workflow guides.
+
+The actual RubyGems download also passed the isolated reference-host browser
+suite described above. Temporary test servers and browser sessions were stopped.
+The release tag and published artifact remain unchanged by these documentation
+records.
