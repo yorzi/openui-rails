@@ -3,6 +3,7 @@
 Date: 2026-10-19. This record captures the unpublished 0.3.0 development
 candidate before release preparation. Its artifact checksum and local-only
 evidence remain historical; they do not identify the published artifact.
+See [RELEASE_0_3.md](RELEASE_0_3.md) for publication and remote verification.
 This work prepares the implementation, local verification, gem package, and
 release documentation. It does not establish remote CI, hosted documentation,
 RubyGems publication, or live-provider success.
