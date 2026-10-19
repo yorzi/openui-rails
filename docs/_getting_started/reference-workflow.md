@@ -12,7 +12,7 @@ description: Run a provider-free support-ticket workflow with persistent state a
 
 After reading this guide, you will know:
 
-* How to run the reference host from the candidate gem.
+* How to run the reference host from the built gem.
 * How Rails owns ticket actions, conversation state, and recovery.
 * Which failure cases the browser checks cover and which limits remain.
 
