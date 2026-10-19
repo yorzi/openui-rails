@@ -12,6 +12,27 @@ authorizes a live call. Follow this loop for each feature:
 5. Commit a completed unit with its actual verification results. Stop any
    task-owned service before finishing.
 
+## Reference workflow
+
+```sh
+bin/check-reference
+bin/check-reference --runtime tmp/real-runtime
+bin/check-reference --gem tmp/package/openui-rails-0.3.0.gem --runtime tmp/real-runtime
+# Focus one browser scenario:
+bin/check-reference --runtime tmp/real-runtime --name test_a_lost_turbo_envelope_recovers_from_the_scoped_snapshot
+```
+
+The first command verifies reference-host transactions in a temporary SQLite
+database. The browser option uses the real renderer and screenshot evidence.
+The gem option generates an isolated consumer using the example packaged in
+that artifact; it imports no dummy-app fixtures. `bin/check --runtime` includes
+this consumer flow. CI runs the host transaction tests in its Ruby/Rails matrix
+and the artifact browser flow in the system job.
+
+Add `--host tmp/support-desk` with `--gem` to retain a synthetic review host.
+It refuses existing directories and starts no persistent service. Follow the
+site's Reference Workflow guide for its explicit loopback review command.
+
 ## Checks
 
 ```sh

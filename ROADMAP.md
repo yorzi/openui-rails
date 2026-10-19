@@ -2,8 +2,8 @@
 
 Proposed on 2026-10-18 against the `0.1.0` implementation. Version `0.2.0`
 was published on 2026-10-18; see [its release record](RELEASE_0_2.md).
-Milestones after 0.2 are proposals,
-not supported APIs or release dates. Work through one milestone at a time;
+The `0.3.0` implementation is a local candidate under validation.
+Milestones after 0.3 are proposals, not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
 
 ## What 1.0 means
@@ -26,7 +26,8 @@ stream sequencing, Turbo/Action Cable transports, an authorized action endpoint,
 and an optional RubyLLM adapter. See the dated [audit](AUDIT.md) for verification
 and its limits.
 
-The next work comes from concrete integration gaps:
+The original 0.1 baseline identified these integration gaps. The 0.2 setup
+work is released; the 0.3 reference flow now also exercises the built gem:
 
 | Gap | Current evidence | Milestone |
 | --- | --- | --- |
@@ -85,6 +86,9 @@ exports, their provenance, and the upstream license. Applications prepare them
 with Ruby alone. The real-runtime suite compares them with the actual library.
 
 ## 0.3.0: prove a complete host workflow
+
+This milestone is implemented as an unpublished local candidate. Verification
+and remaining release gates are recorded in `VALIDATION_0_3.md`.
 
 Create one runnable reference host using the built gem, default library, SQLite,
 importmap, and Turbo Streams. Keep it small enough to read. A support-ticket

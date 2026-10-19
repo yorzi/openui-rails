@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    Dir["{app,config,lib}/**/*", "LICENSE", "README.md", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md",
+    Dir["{app,config,lib}/**/*", "examples/support_desk/**/*", "LICENSE", "README.md", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md",
       "CONFIGURATION.md", "UPGRADING.md", "SECURITY.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md",
       "RELEASING.md", "AUDIT.md", "DEVELOPMENT.md"].select { |path| File.file?(path) }
   end

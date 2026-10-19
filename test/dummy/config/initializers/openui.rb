@@ -3,6 +3,7 @@
 # Dummy-app configuration for the browser (system) tests. It registers two
 # small allowlisted actions and an authorizer so the action round-trip can be
 # exercised end to end without any host application.
+unless ENV["OPENUI_REFERENCE"]
 OpenUI::Rails.configure do |config|
   # The deterministic renderer double is deliberately not the upstream asset.
   if ENV["OPENUI_REAL_RUNTIME_DIR"]
@@ -48,3 +49,14 @@ OpenUI::Rails.actions.register "do.destructive",
 
 OpenUI::Rails.actions.register "continue_conversation",
   handler: ->(invocation) { invocation.args }
+
+end
+
+if ENV["OPENUI_REFERENCE"] && ENV["OPENUI_REAL_RUNTIME_DIR"]
+  OpenUI::Rails.configure do |config|
+    config.runtime_url = "/audit-runtime/runtime.js"
+    config.runtime_stylesheet_url = "/audit-runtime/runtime.css"
+    config.runtime_integrity = OpenUI::Rails::RuntimePackage::FILES.fetch("package/dist/openui-bundle.min.js").last
+    config.runtime_stylesheet_integrity = OpenUI::Rails::RuntimePackage::FILES.fetch("package/dist/openui-styles.css").last
+  end
+end

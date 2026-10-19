@@ -52,6 +52,7 @@ class RealRuntimeCompatibilityTest < ApplicationSystemTestCase
     assert_selector "body[data-openui-last-action]"
     detail = read_json("body", "data-openui-last-action")
     assert_equal "continue_conversation", detail.dig("result", "action")
+    assert_equal "Hello Rails", detail.dig("result", "value", "message")
     assert_no_selector "body[data-openui-last-error]"
   end
 

@@ -1,0 +1,6 @@
+<h1>Support Desk reference host</h1>
+<p class="notice">Synthetic accounts and tickets. Local demo only. No model provider is called.</p>
+<p>Sign in to stream a ticket, save a private draft, continue the conversation, and close the ticket.</p>
+<% %w[Alice Bob Reader].each do |name| %>
+  <%= button_to "Sign in as #{name}", session_path, params: { name: name } %>
+<% end %>

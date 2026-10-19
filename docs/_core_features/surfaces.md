@@ -40,6 +40,11 @@ The helper emits an escaped `div` for the Stimulus mount. `label:` makes it a `r
 
 ## Surface fields
 
+Restore `response`, `message_id`, `next_sequence`, and `completed` together
+when you persist a stream. This prevents late frames from being applied again
+after a reload. See [Streaming Responses]({% link _core_features/streaming.md %})
+for the watermark contract. Completed surfaces cannot also be streaming.
+
 | Field | Purpose |
 | --- | --- |
 | `id` | Stable opaque surface identifier. |
@@ -49,8 +54,10 @@ The helper emits an escaped `div` for the Stimulus mount. `label:` makes it a `r
 | `context` | JSON-compatible initial state for the host and client. |
 | `message_id` | Stream identity. Defaults to the surface id. |
 | `streaming` | Whether the surface is currently receiving output. |
+| `next_sequence` | Next expected envelope after persisted output. Defaults to `0`. |
+| `completed` | Whether non-snapshot updates for this message are terminal. Defaults to `false`. |
 
-You can override mount-specific values with `stream:`, `dom_id:`, `initial_state:`, and `label:`. Hashes accept symbol or string keys. Host records can expose `id`, `version`, `library_version`, `response`, `context`, and `message_id`.
+You can override mount-specific values with `stream:`, `dom_id:`, `initial_state:`, and `label:`. Hashes accept symbol or string keys. Host records can expose `id`, `version`, `library_version`, `response`, `context`, `message_id`, `next_sequence`, and `completed`.
 
 When `library_spec_path` is configured, the helper rejects a surface whose non-nil `library_version` differs from the configured manifest fingerprint. The browser compares the loaded library with the same fingerprint before mounting. Without a manifest, the gem cannot verify that a prompt, stored response, and runtime library belong together.
 

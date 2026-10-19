@@ -88,6 +88,22 @@ class OpenUISurfacesSystemTest < ApplicationSystemTestCase
     assert_equal 1, detail.dig("result", "value", "x")
   end
 
+  test "conversation actions preserve the runtime message and form metadata" do
+    page.execute_script(<<~JS)
+      const element = document.querySelector('[data-openui-surface-id="surface-1"]')
+      window.Stimulus.getControllerForElementAndIdentifier(element, "openui").dispatchAction({
+        type: "continue_conversation", params: { context: "ticket review" },
+        humanFriendlyMessage: "Review this ticket", formName: "reply", formState: { note: "Keep this draft" }
+      })
+    JS
+    assert_selector "body[data-openui-last-action]"
+    value = read_json("body", "data-openui-last-action").dig("result", "value")
+    assert_equal "Review this ticket", value["message"]
+    assert_equal "reply", value["form_name"]
+    assert_equal({ "note" => "Keep this draft" }, value["form_state"])
+    assert_equal "ticket review", value["context"]
+  end
+
   test "a browser tool call round-trips through the same endpoint" do
     within_surface("surface-1") { find("[data-openui-tool]").click }
 

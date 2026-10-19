@@ -1,0 +1,123 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "tmpdir"
+require "fileutils"
+require "optparse"
+require "open3"
+require "rubygems/package"
+$stdout.sync = true
+options = {}
+OptionParser.new do |parser|
+  parser.banner = "Usage: bin/check-reference [--runtime DIR] [--gem FILE] [--host NEW_DIRECTORY]"
+  parser.on("--name PATTERN", "Focus the reference browser suite") { |v| options[:name] = v }
+  parser.on("--runtime DIR", "Run the real-browser workflow with verified local assets") { |v| options[:runtime] = File.expand_path(v) }
+  parser.on("--gem FILE", "Generate a host that consumes only this built gem") { |v| options[:gem] = File.expand_path(v) }
+  parser.on("--host DIR", "Keep a generated host here for inspection; never starts a persistent server") { |v| options[:host] = File.expand_path(v) }
+end.parse!
+abort "Unexpected arguments" unless ARGV.empty?
+abort "--host requires --gem" if options[:host] && !options[:gem]
+root = File.expand_path("..", __dir__)
+require_relative "../lib/openui/rails"
+if options[:runtime]
+  OpenUI::Rails::RuntimePackage::FILES.each_value do |suffix, integrity|
+    path = File.join(options[:runtime], "#{OpenUI::Rails::RuntimeAsset::FILE_PREFIX}-#{OpenUI::Rails::RuntimeAsset::PINNED_VERSION}.#{suffix}")
+    abort "Missing or mismatched runtime: #{path}" unless File.file?(path) && "sha384-#{Digest::SHA384.file(path).base64digest}" == integrity
+  end
+end
+artifacts = File.join(root, "tmp/browser", "#{Time.now.utc.strftime('%Y%m%dT%H%M%S')}-#{Process.pid}-reference")
+FileUtils.mkdir_p(artifacts) if options[:runtime]
+# Preserve cached dependency locations when leaving the development bundle.
+homes = Gem.loaded_specs.values.map { |spec| File.dirname(File.dirname(spec.full_gem_path)) }
+gem_path = (homes + Gem.path).uniq.join(File::PATH_SEPARATOR)
+
+def run!(*command, directory:, environment: {})
+  output, error, status = Open3.capture3(environment, *command, chdir: directory)
+  puts output unless output.empty?
+  abort "#{command.join(' ')} failed:\n#{error}" unless status.success?
+end
+
+Dir.mktmpdir("openui-reference-") do |temporary|
+  host = options[:gem] ? (options[:host] || File.join(temporary, "host")) : File.join(root, "test/dummy")
+  environment = {
+    "RAILS_ENV" => "test", "OPENUI_REFERENCE" => "1", "OPENUI_REFERENCE_TEST_DATABASE" => "1",
+    "DATABASE_URL" => "sqlite3:#{temporary}/reference.sqlite3", "OPENUI_REAL_RUNTIME_DIR" => options[:runtime],
+    "OPENUI_BROWSER_ARTIFACTS" => artifacts, "SE_CACHE_PATH" => File.join(root, "tmp/selenium"), "SE_AVOID_STATS" => "true",
+    "OPENUI_REFERENCE_HOST" => host
+  }
+  if options[:gem]
+    abort "Host directory already exists or its parent is missing" if File.exist?(host) || !File.directory?(File.dirname(host))
+    artifact = File.join(temporary, "artifact")
+    package = Gem::Package.new(options[:gem])
+    package.extract_files(artifact)
+    File.write(File.join(artifact, "openui-rails.gemspec"), package.spec.to_ruby)
+    # A retained host needs its extracted gem and DB to survive this run too.
+    if options[:host]
+      FileUtils.mkdir_p(host)
+      FileUtils.mv(artifact, File.join(host, "artifact"))
+      artifact = File.join(host, "artifact")
+      generated = File.join(temporary, "generated")
+    else
+      generated = host
+    end
+    run!("bundle", "exec", "rails", "new", generated, "--minimal", "--skip-bundle", "--skip-git", directory: temporary)
+    if options[:host]
+      FileUtils.cp_r(Dir[File.join(generated, "*")], host)
+      environment["DATABASE_URL"] = "sqlite3:#{host}/storage/reference-test.sqlite3"
+    end
+    File.write(File.join(host, "Gemfile"), <<~GEMFILE)
+      source "https://rubygems.org"
+      gem "rails", "#{Gem.loaded_specs.fetch('rails').version}"
+      gem "openui-rails", path: #{artifact.inspect}
+      gem "propshaft"
+      gem "sqlite3"
+      gem "puma"
+      gem "importmap-rails"
+      gem "stimulus-rails"
+      gem "turbo-rails", "~> 2.0"
+      gem "capybara"
+      gem "selenium-webdriver"
+      #{'gem "json", "< 3"' if Gem.loaded_specs.fetch("rails").version < Gem::Version.new("8.1")}
+    GEMFILE
+    environment.merge!("BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "GEM_PATH" => gem_path,
+      "OPENUI_REFERENCE_ARTIFACT" => artifact, "OPENUI_REFERENCE_LIBRARY_DIR" => File.join(host, "config/openui"))
+    Bundler.with_unbundled_env do
+      run!("bundle", "install", "--local", directory: host, environment: environment)
+      run!("bundle", "exec", "ruby", "bin/rails", "generate", "openui:install", directory: host, environment: environment)
+      run!("bundle", "exec", "ruby", File.join(artifact, "examples/support_desk/install.rb"), host, directory: host, environment: environment)
+      run!("bundle", "exec", "ruby", "bin/rails", "openui:library:prepare", directory: host, environment: environment)
+      if options[:runtime]
+        FileUtils.mkdir_p(File.join(host, "public/openui"))
+        OpenUI::Rails::RuntimePackage::FILES.each_value do |suffix, _integrity|
+          name = "#{OpenUI::Rails::RuntimeAsset::FILE_PREFIX}-#{OpenUI::Rails::RuntimeAsset::PINNED_VERSION}.#{suffix}"
+          FileUtils.cp(File.join(options[:runtime], name), File.join(host, "public/openui", name))
+        end
+      end
+    end
+  else
+    environment["OPENUI_REFERENCE_LIBRARY_DIR"] = File.join(root, "lib/openui/rails/default_library")
+  end
+
+  work = lambda do
+    reference = options[:gem] ? File.join(environment.fetch("OPENUI_REFERENCE_ARTIFACT"), "examples/support_desk") : File.join(root, "examples/support_desk")
+    migration = "ActiveRecord::MigrationContext.new([#{File.join(reference, 'db/migrate').inspect}]).migrate; SupportDesk::Demo.seed!"
+    run!("bundle", "exec", "ruby", "bin/rails", "runner", migration, directory: host, environment: environment)
+    if options[:gem]
+      verification = "abort 'source checkout loaded' unless Gem.loaded_specs.fetch('openui-rails').full_gem_path == #{environment.fetch('OPENUI_REFERENCE_ARTIFACT').inspect}; Rails.application.eager_load!; puts 'Reference host loaded only the built artifact'"
+      run!("bundle", "exec", "ruby", "bin/rails", "runner", verification, directory: host, environment: environment)
+    else
+      run!("bundle", "exec", "ruby", File.join(root, "bin/rails"), "test", "test/reference/host_test.rb", directory: root, environment: environment)
+    end
+    if options[:runtime]
+      puts "Reference browser artifacts: #{artifacts}"
+      selection = options[:name] ? [ "--name", options[:name] ] : []
+      run!("bundle", "exec", "ruby", File.join(root, "test/reference/browser_flow.rb"), *selection, directory: host, environment: environment)
+    end
+  end
+  options[:gem] ? Bundler.with_unbundled_env(&work) : work.call
+  if options[:host]
+    puts "Retained synthetic host: #{host} (no server is running)."
+    puts "Use DATABASE_URL=sqlite3:#{host}/storage/reference-test.sqlite3 with RAILS_ENV=test for this retained database."
+  end
+end

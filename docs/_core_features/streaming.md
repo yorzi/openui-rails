@@ -52,6 +52,32 @@ The bridge orders its own frames but cannot guarantee that Action Cable or Turbo
 
 The gem does not persist responses, provide a snapshot endpoint, or decide who can read a snapshot. The `openui:snapshot-required` event includes the sequence the client expects. Your host should load the current response through an authorized path, create an `openui.snapshot` envelope with a sequence the client accepts, and dispatch it to the page. Use the same surface and tenant checks as the action endpoint.
 
+## Restore a persisted response
+
+Store the canonical response, message identity, next expected sequence, and
+terminal flag together. Restore all four when you render after a reload:
+
+```ruby
+openui_surface(
+  surface: { id: "ticket-42", message_id: "ticket-42-turn-2",
+             response: saved_response, next_sequence: 7, completed: true },
+  initial_state: saved_form_state
+)
+```
+
+`next_sequence` is one greater than the last applied envelope, including a
+completion or error frame. It must be a non-negative JavaScript-safe integer.
+`completed: true` ignores subsequent non-snapshot frames for that message.
+Do not combine it with `streaming: true`. Defaults remain `0` and `false` for
+applications that do not persist stream metadata. Start a new message identity
+for each new generated response. Keep the action revision separate from the
+stream sequence.
+
+A snapshot remains authoritative: use its watermark and the same scoped
+message identity. Persist form state through `openui:state` in your host and
+restore it through `initial_state:`. Neither the gem nor the browser stores
+canonical application data for you.
+
 ## Next Steps
 
 * [Streaming Transports]({% link _advanced/transports.md %}) - deliver envelopes using Turbo Streams or Action Cable.

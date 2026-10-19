@@ -34,6 +34,13 @@ and a 16-token output cap. See [AUDIT.md](AUDIT.md) for the result and limits.
 
 ## Prepare the candidate
 
+During development, keep `released: false`, document delivered work under
+`Unreleased`, and run `ruby bin/check-release --candidate`. This confirms
+candidate metadata without authorizing or satisfying the publication gate.
+The candidate must pass the full verification and built-gem reference flow.
+After publication is authorized, complete the release metadata steps below.
+
+
 1. Set the version in `lib/openui/rails/version.rb`.
 2. Add a dated `## [x.y.z] - YYYY-MM-DD` changelog section.
    Set the same version and `released: true` in `docs/_config.yml`, update

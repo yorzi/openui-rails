@@ -1,0 +1,16 @@
+<header>
+  <h1>Support Desk</h1>
+  <span><%= current_actor.name %> · <%= current_actor.tenant_id %> tenant</span>
+  <%= button_to "Sign out", session_path, method: :delete %>
+</header>
+<p class="notice">Recorded response, real OpenUI runtime. Your Rails host owns the ticket and conversation.</p>
+<section data-controller="support-desk"
+         data-support-desk-stream-url="<%= stream_conversation_path(@conversation) %>"
+         data-support-desk-snapshot-url="<%= snapshot_conversation_path(@conversation) %>"
+         data-support-desk-state-url="<%= state_conversation_path(@conversation) %>"
+         data-action="openui:state->support-desk#saveState openui:snapshot-required->support-desk#recover openui:action->support-desk#action openui:error->support-desk#error">
+  <%= openui_surface(surface: @conversation.surface, label: "Support ticket") %>
+  <div id="desk-envelopes" hidden></div>
+  <p role="status" id="desk-status">Ready</p>
+  <p role="alert" id="desk-error"></p>
+</section>

@@ -8,10 +8,10 @@ module OpenUI
     # opaque identifier plus the current revision and the source to render.
     # A surface can be built explicitly or coerced from a host record that
     # exposes `id` (and, optionally, `version`, `library_version`, `response`,
-    # `context`, `message_id`).
+    # `context`, `message_id`, `next_sequence`, `completed`).
     class Surface
       # Surface values copied from an explicit object, hash, or host record.
-      ATTRIBUTES = %i[id version library_version response context streaming message_id].freeze
+      ATTRIBUTES = %i[id version library_version response context streaming message_id next_sequence completed].freeze
 
       attr_reader(*ATTRIBUTES)
 
@@ -72,15 +72,28 @@ module OpenUI
       #
       # @param message_id [String, nil] stream identity; defaults to id
       #
+      # @param next_sequence [Integer] next expected envelope sequence after persisted output
+      #
+      # @param completed [Boolean] ignore later non-snapshot envelopes for a terminal response
+      #
       # @return [Surface]
       def initialize(id:, version: 0, library_version: nil, response: nil, context: nil,
-                     streaming: false, message_id: nil)
+                     streaming: false, message_id: nil, next_sequence: 0, completed: false)
         raise ArgumentError, "surface id is required" if id.nil? || id.to_s.empty?
         unless version.nil? || (version.is_a?(Integer) && version >= 0)
           raise ArgumentError, "surface version must be a non-negative Integer"
         end
         raise ArgumentError, "surface response must be a String" unless response.nil? || response.is_a?(String)
 
+        unless next_sequence.is_a?(Integer) && next_sequence.between?(0, 9_007_199_254_740_991)
+          raise ArgumentError, "next_sequence must be a non-negative JavaScript-safe Integer"
+        end
+        unless [ true, false ].include?(completed) && !(completed && streaming)
+          raise ArgumentError, "completed must be boolean and cannot coexist with streaming"
+        end
+
+        @next_sequence = next_sequence
+        @completed = completed
         @id = id.to_s.dup.freeze
         @version = version || 0
         @library_version = library_version&.to_s&.dup&.freeze
@@ -102,7 +115,8 @@ module OpenUI
       def to_h
         {
           id: id, version: version, library_version: library_version,
-          response: response, context: context, streaming: streaming, message_id: message_id
+          response: response, context: context, streaming: streaming, message_id: message_id,
+          next_sequence: next_sequence, completed: completed
         }
       end
 
@@ -124,10 +138,14 @@ module OpenUI
       #
       # @return [Hash] HTML data attributes with string values
       def to_mount_data(stream: false, actions_endpoint:, initial_state: nil)
+        raise ArgumentError, "completed surfaces cannot be mounted as streaming" if completed && stream
+
         {
           controller: "openui",
           openui_surface_id: id,
           openui_message_id: message_id,
+          openui_next_sequence: next_sequence.to_s,
+          openui_completed: completed.to_s,
           openui_version: version.to_s,
           openui_library_version: library_version,
           openui_streaming: (streaming? || stream) ? "true" : "false",

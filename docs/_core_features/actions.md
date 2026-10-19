@@ -72,6 +72,28 @@ The endpoint returns JSON with an `error` object containing `code` and `message`
 
 The browser also reports `unauthorized` for a redirect and `invalid_response` for invalid endpoint responses through `openui:error`. A browser error event does not carry an HTTP status for these local checks. A tool call receives the handler's `value`; the `openui:action` event carries the full result.
 
+## Continue a conversation
+
+The pinned runtime emits `@ToAssistant` metadata beside its `params`. The
+bridge adds it to the `continue_conversation` action's arguments:
+
+```ruby
+OpenUI::Rails.actions.register "continue_conversation",
+  schema: OpenUI::Rails::Actions::Schema.define(
+    required: { "message" => String },
+    optional: { "context" => Object, "form_name" => String, "form_state" => Hash }
+  ),
+  handler: ->(invocation) { YourConversationFlow.call(invocation) }
+```
+
+`humanFriendlyMessage` becomes `message`, `formName` becomes `form_name`, and
+`formState` becomes `form_state` when each field is present. Runtime metadata
+takes precedence over same-named keys in `params`. Other action types and tool
+arguments are unchanged. These are untrusted browser inputs. Bound and validate
+their sizes and field names before persistence, and keep actor, tenant,
+conversation lookup, and authorization on the server. The host handler owns
+conversation history and the next response; the gem does not run an agent loop.
+
 ## Next Steps
 
 * [Configuration]({% link _getting_started/configuration.md %}) - configure actor, surface, and global authorization.

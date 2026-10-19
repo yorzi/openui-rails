@@ -1,7 +1,8 @@
 ---
 layout: default
 title: What's New in 0.2
-nav_order: 5
+nav_order: 2
+parent: Release History
 description: Prepare the default chat library and inspect local setup before rendering OpenUI in Rails.
 ---
 
@@ -15,7 +16,7 @@ After reading this guide, you will know:
 * How to initialize the default library without browser-console copying.
 * How to find missing local setup steps without running actions.
 
-Version `{{ site.version }}` adds two setup tasks. See
+Version `0.2.0` adds two setup tasks. See
 [Release History]({% link _reference/release-history.md %}) for release dates.
 
 ## Prepare the default library

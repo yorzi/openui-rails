@@ -23,10 +23,12 @@ Dir.chdir(File.expand_path("..", __dir__)) do
     abort "Check failed: #{command.join(' ')}" unless system(*command)
   end
 
+  run!(RbConfig.ruby, "bin/check-release", "--candidate") if File.read("docs/_config.yml").match?(/^released: false$/)
   run!("bundle", "exec", "rubocop")
   run!("bundle", "exec", "bin/rails", "db:test:prepare")
   run!("bundle", "exec", "bin/rails", "test")
   run!("bundle", "exec", "ruby", "-Itest", "test/compatibility/ruby_llm_smoke.rb")
+  run!(RbConfig.ruby, "bin/check-reference")
   FileUtils.mkdir_p("tmp/package")
   artifact = "tmp/package/openui-rails-#{OpenUI::Rails::VERSION}.gem"
   run!("bundle", "exec", "gem", "build", "openui-rails.gemspec", "--output", artifact)
@@ -34,5 +36,6 @@ Dir.chdir(File.expand_path("..", __dir__)) do
   run!(RbConfig.ruby, "bin/check-browser") if options[:browser] || options[:runtime]
   run!(RbConfig.ruby, "bin/check-browser", "--runtime", options[:runtime]) if options[:runtime]
   run!("bundle", "exec", "ruby", "bin/smoke-package", artifact, "--runtime", options[:runtime]) if options[:runtime]
+  run!(RbConfig.ruby, "bin/check-reference", "--gem", artifact, "--runtime", options[:runtime]) if options[:runtime]
   run!("docs/bin/build.sh") if options[:docs]
 end

@@ -226,7 +226,7 @@ export default class extends Controller {
   async dispatchAction(payload = {}) {
     const body = {
       action: payload.action ?? payload.name ?? payload.type,
-      args: payload.args ?? payload.params ?? {},
+      args: this.actionArguments(payload),
       surface_id: this.surfaceId,
       version: this.version,
       idempotency_key: payload.idempotency_key ?? this.newIdempotencyKey(),
@@ -266,6 +266,19 @@ export default class extends Controller {
       if (error.name !== "AbortError" || this.connection) this.handleError(error)
       throw error
     }
+  }
+
+  // The official renderer places conversation metadata beside params. Keep
+  // it in the allowlisted action's args so the host can validate and persist it.
+  actionArguments(payload) {
+    const args = payload.args ?? payload.params ?? {}
+    if ((payload.action ?? payload.name ?? payload.type) !== "continue_conversation") return args
+    if (typeof args !== "object" || Array.isArray(args)) return args
+    const metadata = {}
+    if (payload.humanFriendlyMessage !== undefined) metadata.message = payload.humanFriendlyMessage
+    if (payload.formState !== undefined) metadata.form_state = payload.formState
+    if (payload.formName !== undefined) metadata.form_name = payload.formName
+    return { ...args, ...metadata }
   }
 
   // Every browser `Query()`/`Mutation()` tool call is routed to the same

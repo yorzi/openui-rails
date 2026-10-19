@@ -3,6 +3,8 @@
 Rails.application.routes.draw do
   mount OpenUI::Rails::Engine => "/openui-rails"
 
+  mount SupportDesk::Engine => "/support" if ENV["OPENUI_REFERENCE"]
+
   get "/demo", to: "demo#show"
   post "/expired-session", to: redirect("/demo", status: 302)
   if ENV["OPENUI_REAL_RUNTIME_DIR"]

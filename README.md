@@ -66,6 +66,7 @@ The documentation site contains the full guides and API reference:
 - [Upgrading](https://openui-rails.wangyaodi.com/upgrading/) and [API reference](https://openui-rails.wangyaodi.com/api-reference/)
 
 Version `0.2.0` adds default-library preparation and setup diagnostics.
+Version `0.3.0` is a local development candidate.
 The API may change during `0.x`; see the
 [changelog](CHANGELOG.md) and the proposed [path to 1.0](ROADMAP.md).
 The site's stable channel follows the latest release; [/next/](https://openui-rails.wangyaodi.com/next/)

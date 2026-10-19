@@ -6,6 +6,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- A packaged, opt-in support-ticket reference host with SQLite persistence,
+  importmap, HTTP Turbo Streams, real Query/Mutation calls, host-owned
+  conversation continuation, and scoped snapshot recovery.
+- `bin/check-reference` verifies the maintained host or a fresh host using only
+  the built artifact. Browser checks cover reload, lost envelopes, expired
+  identity, cross-tenant access, read-only roles, stale/duplicate actions, CSRF,
+  keyboard activation, and mobile layout.
+- `bin/check-release --candidate` validates unpublished candidate metadata
+  without weakening the publication gate.
+- `Surface` and `openui_surface` accept persisted `next_sequence` and
+  `completed` values to restore stream ordering after a page reload.
+
+### Fixed
+
+- Conversation actions preserve the official runtime's user message, form name,
+  and form state as validated-by-host action arguments. Strict
+  `continue_conversation` schemas need to allow the metadata they consume.
+
 ## [0.2.0] - 2026-10-18
 
 ### Added

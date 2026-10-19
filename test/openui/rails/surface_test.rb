@@ -69,6 +69,26 @@ module OpenUI
         assert_equal({ "formState" => { "note" => "rush" } }, JSON.parse(data[:openui_initial_state]))
       end
 
+      test "restores a persisted stream watermark and terminal state" do
+        surface = Surface.coerce({ id: "saved", next_sequence: 7, completed: true, response: "saved UI" })
+        data = surface.to_mount_data(actions_endpoint: "/a")
+
+        assert_equal 7, surface.next_sequence
+        assert_equal true, surface.completed
+        assert_equal "7", data[:openui_next_sequence]
+        assert_equal "true", data[:openui_completed]
+        assert_equal surface.to_h, Surface.coerce(surface).to_h
+      end
+
+      test "rejects invalid restored stream state" do
+        [ -1, 1.5, "7", 9_007_199_254_740_992 ].each do |value|
+          assert_raises(ArgumentError) { Surface.new(id: "saved", next_sequence: value) }
+        end
+        assert_raises(ArgumentError) { Surface.new(id: "saved", completed: "true") }
+        assert_raises(ArgumentError) { Surface.new(id: "saved", streaming: true, completed: true) }
+        assert_raises(ArgumentError) { Surface.new(id: "saved", completed: true).to_mount_data(stream: true, actions_endpoint: "/a") }
+      end
+
       test "requires an id" do
         assert_raises(ArgumentError) { Surface.new(id: nil) }
         assert_raises(ArgumentError) { Surface.coerce(Object.new) }
