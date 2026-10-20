@@ -12,7 +12,7 @@ description: Opt into shared action storage while preserving existing OpenUI Rai
 
 After reading this guide, you will know:
 
-* How to test the 0.4 development branch.
+* How to upgrade an application to 0.4.0.
 * How to opt into shared storage and prepare JSON handler results.
 
 ## Upgrade from 0.3.0
@@ -66,5 +66,5 @@ host schema before downgrading the gem.
 
 ## Next Steps
 
-* [What's New]({% link _getting_started/whats-new-in-0-4.md %}) - review the candidate scope.
+* [What's New]({% link _getting_started/whats-new-in-0-4.md %}) - review shared storage and its limits.
 * [Release History]({% link _reference/release-history.md %}) - check published versions.

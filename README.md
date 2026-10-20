@@ -22,8 +22,8 @@ or renderer.
 - One allowlisted action endpoint with authorization, validation, and replay protection.
 - An optional RubyLLM streaming adapter.
 
-Your app supplies scoped record lookup, stream subscriptions, snapshot recovery,
-and shared idempotency storage when running multiple processes.
+Your app supplies scoped record lookup, stream subscriptions, and snapshot
+recovery. Multi-process apps can opt into the SQLite shared idempotency store.
 
 ## Get started
 
@@ -32,7 +32,7 @@ The runtime-fetch task also needs npm. RubyLLM is optional.
 
 ```ruby
 # Gemfile
-gem "openui-rails", "~> 0.3.0"
+gem "openui-rails", "~> 0.4.0"
 ```
 
 ```sh
@@ -65,9 +65,8 @@ The documentation site contains the full guides and API reference:
 - [RubyLLM](https://openui-rails.wangyaodi.com/ruby-llm/) and [production setup](https://openui-rails.wangyaodi.com/production/)
 - [Upgrading](https://openui-rails.wangyaodi.com/upgrading/) and [API reference](https://openui-rails.wangyaodi.com/api-reference/)
 
-Version `0.3.0` adds a persisted reference workflow and stream restoration.
-See [What's New](https://openui-rails.wangyaodi.com/whats-new-in-0-3/) for the upgrade.
-Version `0.4.0` is an unpublished development candidate for shared replay storage.
+Version `0.4.0` adds optional shared replay storage for Rails workers.
+See [What's New](https://openui-rails.wangyaodi.com/whats-new-in-0-4/) for the upgrade.
 The API may change during `0.x`; see the
 [changelog](CHANGELOG.md) and the proposed [path to 1.0](ROADMAP.md).
 The site's stable channel follows the latest release; [/next/](https://openui-rails.wangyaodi.com/next/)
