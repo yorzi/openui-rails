@@ -1,7 +1,8 @@
 ---
 layout: default
 title: What's New in 0.3
-nav_order: 5
+nav_order: 3
+parent: Release History
 description: Run a persisted support-ticket workflow with real rendering and scoped recovery in a Rails reference host.
 ---
 
@@ -15,10 +16,7 @@ After reading this guide, you will know:
 * How to exercise the complete reference workflow without a provider.
 * How to restore persisted stream metadata and continue a conversation.
 
-{% unless site.released %}Version `{{ site.version }}` is an unpublished development candidate. The
-stable site remains on the latest published release.
-{% else %}Version `{{ site.version }}` adds the reference host and persisted stream restoration.
-{% endunless %}
+Version `0.3.0` adds the reference host and persisted stream restoration.
 
 ## Run the reference workflow
 

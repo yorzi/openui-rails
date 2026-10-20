@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Optional `Actions::Idempotency::ActiveRecordStore` with atomic database claims,
+  ownership fencing, JSON result persistence, and explicit expiry cleanup.
+  SQLite is the verified database; memory remains the default.
+- `openui:idempotency` generates the opt-in table and its unique key and expiry
+  indexes. Installing the engine alone creates no shared-store table.
+- Reusable Minitest store-conformance checks, independent-process SQLite tests,
+  and a fresh-host migration and restart check against the built gem.
+
+### Changed
+
+- The support-desk reference uses the shared store while retaining its business
+  uniqueness constraint. A shared claim does not guarantee exactly-once effects.
+
 ## [0.3.0] - 2026-10-19
 
 ### Added

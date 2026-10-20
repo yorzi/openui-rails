@@ -71,7 +71,7 @@ After you create the matching prompt and manifest, call `OpenUI::Rails.configura
 
 Use a shared atomic store when separate processes can handle the same action. The dispatcher supplies a SHA-256 key scoped to trusted actor and tenant identity, plus a digest that binds the action, surface, version, arguments, and confirmation flag.
 
-Your store implements these two methods:
+The optional [Active Record store]({% link _advanced/shared-idempotency.md %}) implements this contract on SQLite. To provide another adapter, implement these two methods:
 
 ```ruby
 claim(key, ttl:, digest:)

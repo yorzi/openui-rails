@@ -1,13 +1,23 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "openui/rails/testing/idempotency_store_contract"
 
 module OpenUI
   module Rails
     module Actions
       module Idempotency
         class MemoryStoreTest < ActiveSupport::TestCase
-          setup { @store = MemoryStore.new }
+          include OpenUI::Rails::Testing::IdempotencyStoreContract
+          setup { @now = 0.0; @store = MemoryStore.new }
+
+          def build_store
+            MemoryStore.new(clock: -> { @now })
+          end
+
+          def advance_store_clock(seconds)
+            @now += seconds
+          end
 
           test "the first claim succeeds and the second reports a replay" do
             status, _, digest, token = @store.claim("k", ttl: 60, digest: "digest")

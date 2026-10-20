@@ -14,6 +14,10 @@ OpenUI::Rails.configure do |config|
   config.runtime_assets = :self_hosted
   # config.runtime_integrity = "sha384-..."
 
+  # Optional shared SQLite claims: first run openui:idempotency and db:migrate.
+  # See the Shared Idempotency Storage guide for JSON results and crash limits.
+  # config.idempotency_store = OpenUI::Rails::Actions::Idempotency::ActiveRecordStore.new
+
   # Authorize every action/tool call. This fails closed: with no authorizer an
   # action is denied. Return truthy to permit.
   # config.authorize_action = ->(invocation) do

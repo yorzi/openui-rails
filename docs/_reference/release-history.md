@@ -15,7 +15,8 @@ Use the release notes to review changes before updating your application. Each r
 
 | Version | Date | Status |
 | --- | --- | --- |
-| {{ site.version }} | 2026-10-19 | [Persisted reference workflow]({% link _getting_started/whats-new-in-0-3.md %}) |
+| {{ site.version }} | Unreleased | [Shared replay storage candidate]({% link _getting_started/whats-new-in-0-4.md %}) |
+| 0.3.0 | 2026-10-19 | [Persisted reference workflow]({% link _reference/whats-new-in-0-3.md %}) |
 | 0.2.0 | 2026-10-18 | [Default setup and diagnostics]({% link _reference/whats-new-in-0-2.md %}) |
 | 0.1.0 | 2026-10-18 | [Initial release]({% link _reference/whats-new.md %}) |
 

@@ -8,6 +8,7 @@ OpenUI::Rails.configure do |config|
   config.surface_resolver = ->(id, actor:, **) {
     SupportDesk::Conversation.find_by(id: id, user_id: actor.id, tenant_id: actor.tenant_id) if actor
   }
+  config.idempotency_store = OpenUI::Rails::Actions::Idempotency::ActiveRecordStore.new
   config.idempotency_scope = ->(invocation) { [ invocation.actor.tenant_id, invocation.actor.id ] }
   config.authorize_action = ->(invocation) {
     actor, conversation = invocation.actor, invocation.surface

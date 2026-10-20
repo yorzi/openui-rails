@@ -2,14 +2,16 @@
 
 This opt-in reference belongs to the host application, outside the engine's
 public API. It uses synthetic accounts, recorded generation, the real pinned
-OpenUI runtime, SQLite, importmap, and HTTP Turbo Streams.
+OpenUI runtime, SQLite, importmap, and HTTP Turbo Streams. It opts into the
+Active Record idempotency store and retains a unique business receipt for closing
+a ticket. Shared claims do not replace that database constraint.
 
 From the repository:
 
 ```sh
 mkdir -p tmp/package
-bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.3.0.gem
-bin/check-reference --gem tmp/package/openui-rails-0.3.0.gem --runtime tmp/real-runtime
+bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.4.0.gem
+bin/check-reference --gem tmp/package/openui-rails-0.4.0.gem --runtime tmp/real-runtime
 ```
 
 Fetch the runtime first. See the [complete guide](https://openui-rails.wangyaodi.com/reference-workflow/)

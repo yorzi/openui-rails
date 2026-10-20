@@ -36,10 +36,10 @@ A nil surface resolution denies the action. If you do not use a resolver, your a
 
 ## Use shared atomic replay storage
 
-The default idempotency store is process-local memory. It cannot coordinate separate workers and is lost on restart. For a multi-process app, implement the [shared-store contract]({% link _getting_started/configuration.md %}#shared-idempotency-store-contract) on shared atomic storage and configure it:
+The default idempotency store is process-local memory. It cannot coordinate separate workers and is lost on restart. For a multi-process app using SQLite, install the opt-in table described in [Shared Idempotency Storage]({% link _advanced/shared-idempotency.md %}) and configure it:
 
 ```ruby
-config.idempotency_store = MyAtomicIdempotencyStore.new
+config.idempotency_store = OpenUI::Rails::Actions::Idempotency::ActiveRecordStore.new
 config.idempotency_ttl = 900
 ```
 

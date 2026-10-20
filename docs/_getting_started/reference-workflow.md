@@ -26,8 +26,8 @@ local assets and synthetic data. Chrome is required.
 bundle install
 bundle exec rake "app:openui:runtime:fetch[$PWD/tmp/real-runtime]"
 mkdir -p tmp/package
-bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.3.0.gem
-bin/check-reference --gem tmp/package/openui-rails-0.3.0.gem --runtime tmp/real-runtime
+bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-{{ site.version }}.gem
+bin/check-reference --gem tmp/package/openui-rails-{{ site.version }}.gem --runtime tmp/real-runtime
 ```
 
 The command generates a disposable Rails host with SQLite, importmap, Stimulus,
@@ -46,7 +46,7 @@ databases and run sequentially.
 Choose a new directory whose parent exists:
 
 ```sh
-bin/check-reference --gem tmp/package/openui-rails-0.3.0.gem \
+bin/check-reference --gem tmp/package/openui-rails-{{ site.version }}.gem \
   --runtime tmp/real-runtime --host tmp/support-desk
 cd tmp/support-desk
 RAILS_ENV=test DATABASE_URL="sqlite3:$PWD/storage/reference-test.sqlite3" \
@@ -120,10 +120,12 @@ Revision checks run before replay lookup. A duplicate from an older revision
 can return `409 stale_surface` instead of replaying a successful response. Reload
 the canonical state; do not assume every duplicate returns HTTP 200.
 
-The gem still uses its process-local idempotency store by default. This example's
-database receipt protects one domain operation; it is not a shared gem adapter
-or a guarantee of exactly-once external effects. Shared replay storage remains
-a later milestone. See [Production]({% link _advanced/production.md %}).
+The gem defaults to its process-local memory store. This reference opts into
+`ActiveRecordStore` and runs the generated `openui:idempotency` migration alongside
+its own migrations. Stored action results survive worker restarts. Its database
+receipt still protects the close operation after claim expiry or a crash;
+shared replay storage does not guarantee exactly-once external effects. See
+[Shared Idempotency Storage]({% link _advanced/shared-idempotency.md %}).
 
 ## Adapt the source
 

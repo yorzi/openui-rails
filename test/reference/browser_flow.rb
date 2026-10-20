@@ -14,6 +14,7 @@ if ENV["OPENUI_REFERENCE_ARTIFACT"]
   abort "consumer loaded reference from source checkout" unless File.realpath(SupportDesk::Engine.root).start_with?(artifact + "/")
 end
 abort "reference host must enable CSRF itself" unless ActionController::Base.allow_forgery_protection
+abort "reference host must use shared action storage" unless OpenUI::Rails.configuration.idempotency_store.is_a?(OpenUI::Rails::Actions::Idempotency::ActiveRecordStore)
 module ReferenceLoopbackPortProbe
   def free?(port)
     TCPServer.open("127.0.0.1", port) { true }

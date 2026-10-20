@@ -13,6 +13,9 @@ module OpenUI
     # a host authorizer, stale-surface protection and idempotency, shared by
     # both component actions and browser tool calls.
     module Actions
+      module Idempotency
+        autoload :ActiveRecordStore, "openui/rails/actions/idempotency/active_record_store"
+      end
     end
   end
 end

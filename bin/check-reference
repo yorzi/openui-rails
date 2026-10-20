@@ -88,6 +88,7 @@ Dir.mktmpdir("openui-reference-") do |temporary|
       run!("bundle", "install", "--local", directory: host, environment: environment)
       run!("bundle", "exec", "ruby", "bin/rails", "generate", "openui:install", directory: host, environment: environment)
       run!("bundle", "exec", "ruby", File.join(artifact, "examples/support_desk/install.rb"), host, directory: host, environment: environment)
+      run!("bundle", "exec", "ruby", "bin/rails", "generate", "openui:idempotency", directory: host, environment: environment)
       run!("bundle", "exec", "ruby", "bin/rails", "openui:library:prepare", directory: host, environment: environment)
       if options[:runtime]
         FileUtils.mkdir_p(File.join(host, "public/openui"))
@@ -103,7 +104,7 @@ Dir.mktmpdir("openui-reference-") do |temporary|
 
   work = lambda do
     reference = options[:gem] ? File.join(environment.fetch("OPENUI_REFERENCE_ARTIFACT"), "examples/support_desk") : File.join(root, "examples/support_desk")
-    migration = "ActiveRecord::MigrationContext.new([#{File.join(reference, 'db/migrate').inspect}]).migrate; SupportDesk::Demo.seed!"
+    migration = "ActiveRecord::MigrationContext.new([Rails.root.join('db/migrate').to_s, #{File.join(reference, 'db/migrate').inspect}]).migrate; SupportDesk::Demo.seed!"
     run!("bundle", "exec", "ruby", "bin/rails", "runner", migration, directory: host, environment: environment)
     if options[:gem]
       verification = "abort 'source checkout loaded' unless Gem.loaded_specs.fetch('openui-rails').full_gem_path == #{environment.fetch('OPENUI_REFERENCE_ARTIFACT').inspect}; Rails.application.eager_load!; puts 'Reference host loaded only the built artifact'"

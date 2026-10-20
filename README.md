@@ -67,6 +67,7 @@ The documentation site contains the full guides and API reference:
 
 Version `0.3.0` adds a persisted reference workflow and stream restoration.
 See [What's New](https://openui-rails.wangyaodi.com/whats-new-in-0-3/) for the upgrade.
+Version `0.4.0` is an unpublished development candidate for shared replay storage.
 The API may change during `0.x`; see the
 [changelog](CHANGELOG.md) and the proposed [path to 1.0](ROADMAP.md).
 The site's stable channel follows the latest release; [/next/](https://openui-rails.wangyaodi.com/next/)

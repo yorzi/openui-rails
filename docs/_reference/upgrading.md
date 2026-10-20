@@ -2,7 +2,7 @@
 layout: default
 title: Upgrading
 nav_order: 2
-description: Move an OpenUI Rails application between documented gem releases with the required code and configuration changes.
+description: Opt into shared action storage while preserving existing OpenUI Rails applications and their authorization rules.
 ---
 
 # {{ page.title }}
@@ -12,54 +12,59 @@ description: Move an OpenUI Rails application between documented gem releases wi
 
 After reading this guide, you will know:
 
-* How to upgrade an application to 0.3.0.
-* How to preserve existing library files and host authorization.
+* How to test the 0.4 development branch.
+* How to opt into shared storage and prepare JSON handler results.
 
-## Upgrade from 0.2.0
+## Upgrade from 0.3.0
 
-{% if site.docs_unreleased %}{% unless site.released %}Version `{{ site.version }}` is an unpublished development candidate. {% endunless %}This channel follows `main`. To test the default branch, use a Git dependency:
+{% if site.docs_unreleased %}This channel follows `main`.
+{% unless site.released %}Version `{{ site.version }}` is an unpublished candidate.{% endunless %}
 
 ```ruby
 gem "openui-rails", git: "https://github.com/yorzi/openui-rails", branch: "main"
 ```
-{% else %}Set the new version in your application's `Gemfile`:
+{% else %}Set the version in your application's `Gemfile`:
 
 ```ruby
 gem "openui-rails", "~> {{ site.version }}"
 ```
 {% endif %}
 
-Run `bundle update openui-rails`. The engine requires no database migration or controller change. The opt-in reference host has its own example application tables. Existing applications do not need to rerun the installer or replace a working library.
+Run `bundle update openui-rails`. Existing applications keep `MemoryStore` and
+need no migration or initializer change. For older applications, first read
+the [0.3 migration guide](https://github.com/yorzi/openui-rails/blob/v0.3.0/docs/_reference/upgrading.md).
 
-## Inspect setup without replacing custom files
+## Opt into shared storage
 
 ```sh
-bin/rails openui:doctor
+bin/rails generate openui:idempotency
+bin/rails db:migrate
 ```
 
-Review failures and unverified checks using [Setup Diagnostics]({% link _getting_started/setup-diagnostics.md %}). The task does not certify your host's authorization, browser integration, shared store, or recovery flow.
+```ruby
+config.idempotency_store = OpenUI::Rails::Actions::Idempotency::ActiveRecordStore.new
+```
 
-Use `openui:library:prepare` only when you want the pinned default chat library. It preserves identical files and rejects different existing files before writing. Back up custom prompts, specs, and runtime builds before using the explicit overwrite argument. See [Library and Prompt Contract]({% link _core_features/library-contract.md %}).
+All workers must use the same SQLite database. Run the migration before enabling
+the setting. Review handlers before switching: the database adapter accepts JSON
+values and normalizes object keys to strings. Return explicit public fields
+instead of arbitrary Ruby objects. Memory-store results are not migrated;
+coordinate the switch with outstanding requests because old claims do not move.
+Do not replace or drop the existing library or rerun the base installer.
 
-For older applications, first read the [0.2.0 migration notes](https://github.com/yorzi/openui-rails/blob/v0.2.0/docs/_reference/upgrading.md).
-
-## Update conversation action schemas
-
-In 0.3.0, `continue_conversation` receives optional `message`,
-`form_state`, and `form_name` arguments from the official runtime. Update a
-strict action schema to permit the metadata your handler consumes. Treat every
-field as untrusted input. Existing `params` and `context` are still forwarded.
-Other action types keep their argument shape.
-
-Persisted surfaces can now restore `next_sequence` and `completed` through
-`openui_surface`. They default to `0` and `false`, preserving existing mounts.
-No engine database migration is required.
+Read [Shared Idempotency Storage]({% link _advanced/shared-idempotency.md %}) for
+expiry, cleanup, clock, transaction, and crash limits. Keep host authorization,
+scoped record lookup, and business uniqueness constraints. The reference host
+opts into this store; existing hosts do so only when configured.
 
 ## Plan a rollback
 
-Review the target version's upgrade guide and changelog before downgrading the gem. Keep the matching runtime, prompt, and spec together. A library fingerprint mismatch prevents mounting; the host must display a fallback. Do not assume older versions can read every newer snapshot or schema. Restore compatible host data or regenerate affected UI when needed.
+Switching back to memory loses cross-worker coordination and access to database
+replays. Drain outstanding actions before changing the store. Do not drop the
+shared table while any worker still uses it. Restore a compatible library and
+host schema before downgrading the gem.
 
 ## Next Steps
 
-* [What's New]({% link _getting_started/whats-new-in-0-3.md %}) - see the current feature overview.
+* [What's New]({% link _getting_started/whats-new-in-0-4.md %}) - review the candidate scope.
 * [Release History]({% link _reference/release-history.md %}) - check published versions.

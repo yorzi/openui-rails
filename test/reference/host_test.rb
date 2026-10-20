@@ -46,7 +46,7 @@ if ENV["OPENUI_REFERENCE"]
     test "closing persists one business receipt and fences repeats after store reset" do
       dispatcher = OpenUI::Rails::Actions::Dispatcher.from_configuration
       dispatcher.call(payload("close_ticket"), actor: @alice)
-      OpenUI::Rails.configuration.idempotency_store = OpenUI::Rails::Actions::Idempotency::MemoryStore.new
+      OpenUI::Rails.configuration.idempotency_store = OpenUI::Rails::Actions::Idempotency::ActiveRecordStore.new
       assert_raises(OpenUI::Rails::StaleSurfaceError) do
         OpenUI::Rails::Actions::Dispatcher.from_configuration.call(payload("close_ticket"), actor: @alice)
       end

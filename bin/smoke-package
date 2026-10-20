@@ -54,7 +54,10 @@ Dir.mktmpdir("openui-package-smoke") do |directory|
   end
 
   Bundler.with_unbundled_env do
-    environment = { "BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "GEM_PATH" => gem_path, "RAILS_ENV" => "test" }
+    environment = {
+      "BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "GEM_PATH" => gem_path, "RAILS_ENV" => "test",
+      "DATABASE_URL" => "sqlite3:#{host}/storage/smoke.sqlite3"
+    }
     run!("bundle", "install", "--local", directory: host, environment: environment)
     run!("bundle", "exec", "ruby", "bin/rails", "generate", "openui:install", directory: host, environment: environment)
     abort "generator did not mount the engine" unless File.read(File.join(host, "config/routes.rb")).include?("OpenUI::Rails::Engine")
@@ -92,6 +95,30 @@ Dir.mktmpdir("openui-package-smoke") do |directory|
       puts "Built gem: fresh Rails host, install generator, eager load, and HTTP render passed"
     RUBY
     puts run!("bundle", "exec", "ruby", "probe.rb", directory: host, environment: environment)
+
+    # The shared table is opt-in, generated from this artifact, and configured only after migration.
+    abort "base installer created a shared table" unless Dir[File.join(host, "db/migrate/*openui_action_claims*")].empty?
+    run!("bundle", "exec", "ruby", "bin/rails", "generate", "openui:idempotency", directory: host, environment: environment)
+    run!("bundle", "exec", "ruby", "bin/rails", "db:migrate", directory: host, environment: environment)
+    File.write(File.join(host, "store_probe.rb"), <<~RUBY)
+      require_relative "config/environment"
+      abort "default store changed" unless OpenUI::Rails.configuration.idempotency_store.is_a?(OpenUI::Rails::Actions::Idempotency::MemoryStore)
+      store = OpenUI::Rails::Actions::Idempotency::ActiveRecordStore.new
+      token = store.claim("packaged", ttl: 60, digest: "request").last
+      store.record("packaged", false, claim_token: token)
+      File.write(Rails.root.join("tmp/claim-token"), token)
+    RUBY
+    run!("bundle", "exec", "ruby", "store_probe.rb", directory: host, environment: environment)
+    File.write(File.join(host, "replay_probe.rb"), <<~RUBY)
+      require_relative "config/environment"
+      token = File.read(Rails.root.join("tmp/claim-token"))
+      store = OpenUI::Rails::Actions::Idempotency::ActiveRecordStore.new
+      abort "completed false did not survive restart" unless store.claim("packaged", ttl: 60, digest: "request") == [:replay, false, "request", token]
+      index = ActiveRecord::Base.connection.indexes("openui_action_claims").find { |entry| entry.columns == ["key"] }
+      abort "missing unique database constraint" unless index&.unique
+      puts "Built gem: optional shared migration and cross-process false replay passed"
+    RUBY
+    puts run!("bundle", "exec", "ruby", "replay_probe.rb", directory: host, environment: environment)
 
     if runtime
       require "digest"

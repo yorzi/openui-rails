@@ -7,8 +7,8 @@ module OpenUI
     module Actions
       module Idempotency
         # Default, single-process idempotency store. Hosts that run multiple
-        # processes should inject a shared store (e.g. Redis or the database)
-        # that implements the same contract.
+        # processes can opt into ActiveRecordStore on SQLite
+        # or inject another shared adapter implementing the same contract.
         #
         # Contract:
         #   claim(key, ttl:, digest:) -> [status, result, digest, claim_token]
