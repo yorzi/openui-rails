@@ -5,7 +5,9 @@ was published on 2026-10-18; see [its release record](RELEASE_0_2.md).
 Version `0.3.0` was published on 2026-10-19; see
 [its release record](RELEASE_0_3.md). The
 [local validation record](VALIDATION_0_3.md) preserves the pre-release evidence.
-Milestones after 0.3 are proposals, not supported APIs or release dates. Work through one milestone at a time;
+Version `0.4.0` is implemented as an unpublished local candidate; see
+[its validation record](VALIDATION_0_4.md). Milestones after 0.4 are proposals,
+not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
 
 ## What 1.0 means
@@ -29,14 +31,15 @@ and an optional RubyLLM adapter. See the dated [audit](AUDIT.md) for verificatio
 and its limits.
 
 The original 0.1 baseline identified these integration gaps. The 0.2 setup
-work is released; the 0.3 reference flow now also exercises the built gem:
+work is released; the 0.3 reference flow exercises the built gem. The 0.4
+candidate adds shared storage, with publication and remote CI still pending:
 
 | Gap | Current evidence | Milestone |
 | --- | --- | --- |
 | Default setup requires manual browser-console artifact export. | `openui:install` recommends the custom-library CLI first; `openui:runtime:fetch` installs assets only. | 0.2 |
 | Readiness checks have no task-level report. | `Configuration#validate!` checks files and settings but is called explicitly. | 0.2 |
 | A fresh install is not tested as a complete browser workflow. | `bin/smoke-package` boots a generated host and checks mount HTML; real-runtime interaction tests use `test/dummy`. | 0.3 |
-| Multi-process replay storage is left to each host. | Only `Actions::Idempotency::MemoryStore` ships. | 0.4 |
+| Multi-process replay storage is left to each host. | The 0.4 candidate adds an optional SQLite-backed `ActiveRecordStore`; memory stays the default. | 0.4 |
 | Failure handling requires application-specific glue. | Browser events and `on_error` exist, but there is no consolidated recovery example or server instrumentation contract. | 0.5 |
 | Live generation of usable UI has limited evidence. | The audit's live probe produced a 2-byte delta, not a complete generated UI and action round trip. | 0.9 |
 
@@ -111,6 +114,10 @@ remaining manual setup. Avoid a new generator until this example proves what
 needs repeating.
 
 ## 0.4.0: support shared idempotency storage
+
+This milestone is implemented as a local candidate. The acceptance checks and
+remaining release gates are recorded in [VALIDATION_0_4.md](VALIDATION_0_4.md).
+Complete its release checks before starting the 0.5 diagnostics milestone.
 
 Ship one optional Active Record store with a migration, using SQLite as the
 first verified database. Keep the memory store for single-process use. Preserve
