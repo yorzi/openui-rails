@@ -55,12 +55,30 @@ No live-provider call was made for 0.4.0; generation remains recorded in CI.
 ## Documentation deployment
 
 The [release-triggered deployment](https://github.com/yorzi/openui-rails/actions/runs/39360863775)
-builds stable 0.4.0 and `/next/` from `main`.
+built stable 0.4.0 and `/next/` from `main`.
 
 The job completed successfully, but HTTP and a fresh browser still showed
 stable 0.3.0, and the new stable What's New page returned 404. This is not a
-successful hosted-version check. The publication-record and README update
-triggers a fresh deployment; actual hosted verification remains pending.
+successful hosted-version check. The release record and README changes
+in commit `92f3c27` triggered a
+[fresh successful deployment](https://github.com/yorzi/openui-rails/actions/runs/39361111791).
+Subsequent HTTP checks and a real-browser reload confirmed stable 0.4.0 in the
+version selector and `bundle add openui-rails --version 0.4.0` in Getting Started.
+The browser screenshot also shows What's New in 0.4 and the installation command.
+
+All 14 hosted checks returned HTTP 200 with the expected contents:
+
+- Stable Getting Started, Upgrading, What's New in 0.4, and Release History.
+- Shared Idempotency Storage, Reference Workflow, and Setup Diagnostics.
+- The generated ActiveRecordStore API, including claim, record, and cleanup.
+- Next Getting Started, Upgrading, and Shared Idempotency Storage, following main.
+- Stable and next `llms.txt`, plus the sitemap and the new release's links.
+
+The hosted assertion uses Getting Started's actual `bundle add` command; its
+earlier expectation of Gemfile syntax was corrected without changing the guide.
+Raw checks and reference screenshots remain ignored under `tmp/evidence` and
+`tmp/browser`. Task-owned browser tabs, sessions, and temporary services were
+stopped after verification.
 
 The README, changelog, What's New, upgrade guide, release history, API links,
 shared-storage guide, and roadmap reflect the delivered scope. Candidate
