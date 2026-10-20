@@ -22,6 +22,7 @@ The [generated API reference]({{ '/api/' | relative_url }}) opens on the `OpenUI
 | Deliver stream frames | [`Stream::Broadcaster`]({{ '/api/OpenUI/Rails/Stream/Broadcaster.html' | relative_url }}), [`Stream::Transports`]({{ '/api/OpenUI/Rails/Stream/Transports.html' | relative_url }}) |
 | Register and dispatch actions | [`Actions::Registry`]({{ '/api/OpenUI/Rails/Actions/Registry.html' | relative_url }}), [`Actions::Dispatcher`]({{ '/api/OpenUI/Rails/Actions/Dispatcher.html' | relative_url }}) |
 | Coordinate shared action claims | [`Actions::Idempotency::ActiveRecordStore`]({{ '/api/OpenUI/Rails/Actions/Idempotency/ActiveRecordStore.html' | relative_url }}), [storage guide]({% link _advanced/shared-idempotency.md %}) |
+| Observe outcomes or recover the browser | [Diagnostics and Recovery]({% link _advanced/diagnostics-and-recovery.md %}) |
 | Use the RubyLLM adapter | [`Adapters::RubyLLM`]({{ '/api/OpenUI/Rails/Adapters/RubyLLM.html' | relative_url }}) |
 
 For Markdown, open the [API class index]({{ '/api/index.md' | relative_url }}). Every HTML class page has a matching `.md` page.

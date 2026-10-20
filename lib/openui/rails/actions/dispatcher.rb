@@ -78,8 +78,16 @@ module OpenUI
         #
         # @return [Result]
         #
-        # @raise [OpenUI::Rails::Error] on any failed gate, before side effects
+        # Emits one content-free action.openui_rails outcome notification.
+        # Failed gates run before the handler. Handler and storage failures can
+        # occur after a business effect; hosts must reconcile that outcome.
+        #
+        # @raise [OpenUI::Rails::Error] on a failed gate or domain operation
         def call(payload, actor: nil, surface: nil, tenant: nil, context: {})
+          started = Instrumentation.now
+          outcome = "rejected"
+          replayed = false
+          code = nil
           submission = Submission.parse(payload)
           definition = @registry.fetch(submission.action)
 
@@ -102,11 +110,22 @@ module OpenUI
           authorize!(definition, invocation)
 
           replayed, stored, key, token = claim_idempotency(submission, invocation)
-          return result(submission, stored, replayed: true) if replayed
+          if replayed
+            outcome = "replayed"
+            return result(submission, stored, replayed: true)
+          end
 
+          outcome = "failed"
           value = definition.handler.call(invocation)
           @idempotency_store.record(key, value, claim_token: token)
+          outcome = "succeeded"
           result(submission, value, replayed: false)
+        rescue StandardError => error
+          code = Instrumentation.action_error_code(error)
+          outcome = "failed" unless error.is_a?(Error)
+          raise
+        ensure
+          Instrumentation.publish("action", started: started, outcome: outcome, code: code, replayed: replayed == true)
         end
 
         private

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "openui/rails/instrumentation"
+
 module OpenUI
   module Rails
     module Stream
@@ -107,6 +109,7 @@ module OpenUI
             @total_bytes = 0
             @pending = +""
             @terminated = false
+            @started = Instrumentation.now
           end
 
           # Append a chunk and return a delta once the pending threshold is reached.
@@ -131,7 +134,8 @@ module OpenUI
             [ flush_delta ]
           end
 
-          # Flush pending text and emit the completion envelope once.
+          # Flush pending text and emit the completion envelope once. A terminal
+          # stream.openui_rails notification describes creation, not delivery.
           #
           # @return [Array<Envelope>] the final delta, if any, and completion
           def finish
@@ -144,6 +148,7 @@ module OpenUI
             )
             @sequence += 1
             @terminated = true
+            notify_termination("completed")
             envelopes
           end
 
@@ -184,7 +189,13 @@ module OpenUI
             @sequence += 1
             @terminated = true
             @pending.clear
+            notify_termination(code == "stream_cancelled" ? "cancelled" : "failed", code)
             envelope
+          end
+
+          def notify_termination(outcome, code = nil)
+            Instrumentation.publish("stream", started: @started, outcome: outcome,
+              code: code, sequence: @sequence - 1, bytes: @total_bytes)
           end
         end
       end

@@ -59,6 +59,10 @@ An idempotency key is scoped to actor and tenant and binds the request arguments
 
 ## Handle action errors
 
+The dispatcher also publishes bounded outcome notifications. See
+[Diagnostics and Recovery]({% link _advanced/diagnostics-and-recovery.md %}) for
+the server payloads, browser event fields, and explicit recovery paths.
+
 The endpoint returns JSON with an `error` object containing `code` and `message`. Use the code to choose host-owned recovery UI. The browser rejects authentication redirects and malformed or mismatched responses instead of reporting success.
 
 | Code | HTTP status | Meaning |

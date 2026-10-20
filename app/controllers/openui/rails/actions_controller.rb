@@ -54,14 +54,7 @@ module OpenUI
       end
 
       def error_code(error)
-        case error
-        when UnknownActionError then "unknown_action"
-        when UnauthorizedActionError then "unauthorized"
-        when StaleSurfaceError then "stale_surface"
-        when ReplayError then "replay"
-        when InvalidActionError then "invalid_action"
-        else "error"
-        end
+        Instrumentation.action_error_code(error)
       end
 
       def error_status(error)

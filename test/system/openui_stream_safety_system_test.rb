@@ -106,6 +106,7 @@ class OpenUIStreamSafetySystemTest < ApplicationSystemTestCase
 
     assert_selector "body[data-openui-last-error]"
     assert_selector "#missing-runtime[aria-busy='false']", visible: :all
+    assert_equal "runtime_load_failed", read_json("body", "data-openui-last-error")["code"]
     assert_no_selector "#missing-runtime [data-openui-rendered]", visible: :all
   end
 
@@ -121,5 +122,44 @@ class OpenUIStreamSafetySystemTest < ApplicationSystemTestCase
     assert_selector "body[data-openui-last-error]"
     assert_equal "library_version_mismatch", read_json("body", "data-openui-last-error")["code"]
     assert_no_selector "#wrong-library [data-openui-rendered]", visible: :all
+  end
+
+  test "only an accepted snapshot emits its applied sequence" do
+    page.execute_script(<<~JS)
+      window.appliedSnapshots = []
+      document.addEventListener("openui:snapshot-applied", event => window.appliedSnapshots.push(event.detail))
+    JS
+    dispatch(delta("surface-2", 0, "A"))
+    dispatch(delta("surface-2", 2, "gap"))
+    dispatch({ "message_id" => "surface-2", "sequence" => 1, "type" => "openui.snapshot", "response" => "restored" })
+    within_surface("surface-2") { assert_selector "[data-openui-source]", text: "restored" }
+    assert_equal [ { "surfaceId" => "surface-2", "sequence" => 1 } ], page.evaluate_script("window.appliedSnapshots")
+    dispatch({ "message_id" => "surface-2", "sequence" => 0, "type" => "openui.snapshot", "response" => "stale" })
+    assert_equal 1, page.evaluate_script("window.appliedSnapshots.length")
+  end
+
+  test "callbacks retained by an unmounted renderer cannot use a new connection" do
+    page.execute_script(<<~JS)
+      const element = document.querySelector('[data-openui-surface-id=surface-2]')
+      window.oldProps = window.__openuiMounts.findLast(mount => mount.container.parentElement === element).props
+      window.detachedCallbackSurface = element
+      element.remove()
+    JS
+    assert eventually { page.evaluate_script("window.__openuiMounts.some(mount => mount.unmounted)") }
+    page.execute_script("document.body.appendChild(window.detachedCallbackSurface)")
+    within_surface("surface-2") { assert_selector "[data-openui-rendered]" }
+    observed = page.driver.browser.execute_async_script(<<~JS)
+      const done = arguments[arguments.length - 1]
+      let requests = 0, states = 0
+      window.fetch = async () => { requests++; return new Response('{}', {headers: {'Content-Type': 'application/json'}}) }
+      document.addEventListener('openui:state', () => states++)
+      window.oldProps.onError(new Error('old renderer failed'))
+      window.oldProps.onStateUpdate({private: 'old state'})
+      window.oldProps.onAction({action: 'orders.refresh', args: {orderId: 42}})
+      window.oldProps.toolProvider['orders.refresh']({orderId: 42}).catch(() => {}).then(() => done({requests, states}))
+    JS
+    assert_equal({ "requests" => 0, "states" => 0 }, observed)
+    assert_no_selector "body[data-openui-last-error]"
+    assert_no_selector "body[data-openui-last-action]"
   end
 end

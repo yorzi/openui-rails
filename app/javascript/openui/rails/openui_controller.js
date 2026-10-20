@@ -12,16 +12,18 @@ function loadRuntime(url, integrity) {
       script.async = true
       script.crossOrigin = "anonymous"
       if (integrity) script.integrity = integrity
+      const failed = (message) => {
+        script.remove()
+        reject(Object.assign(new Error(message), { code: "runtime_load_failed" }))
+      }
       script.addEventListener("load", () => {
         if (!window.__OpenUI) {
-          reject(new Error(`OpenUI runtime at ${url} did not expose window.__OpenUI`))
+          failed("OpenUI runtime did not expose window.__OpenUI")
           return
         }
         resolve(window.__OpenUI)
       })
-      script.addEventListener("error", () =>
-        reject(new Error(`Failed to load the OpenUI runtime from ${url}`))
-      )
+      script.addEventListener("error", () => failed("Failed to load the OpenUI runtime"))
       document.head.appendChild(script)
     })
     promise.catch(() => runtimePromises.delete(url))
@@ -80,6 +82,8 @@ export default class extends Controller {
     this.abortController?.abort()
     this.root?.unmount()
     this.root = null
+    this.runtime = null
+    this.tools = null
     this.mountPoint?.remove()
     this.mountPoint = null
   }
@@ -88,11 +92,11 @@ export default class extends Controller {
     try {
       const runtime = await loadRuntime(this.runtimeUrl, this.runtimeIntegrity)
       await this.verifyLibrary(runtime.openuiChatLibrary)
-      if (connection !== this.connection || !this.element.isConnected || !this.mountPoint) return
+      if (!this.isCurrent(connection) || !this.mountPoint) return
       this.runtime = runtime
-      this.render()
+      if (this.render()) this.dispatch("ready", { surfaceId: this.surfaceId })
     } catch (error) {
-      if (connection !== this.connection) return
+      if (!this.isCurrent(connection)) return
       this.state.streaming = false
       this.syncBusy()
       this.handleError(error)
@@ -104,6 +108,7 @@ export default class extends Controller {
     if (!this.runtime || !this.mountPoint || !this.connection) return
     if (!this.withinByteLimit(this.state.source)) return
     const { React, createRoot, Renderer, openuiChatLibrary } = this.runtime
+    const connection = this.connection
     if (!this.root) this.root = createRoot(this.mountPoint)
     this.root.render(
       React.createElement(Renderer, {
@@ -115,12 +120,13 @@ export default class extends Controller {
         initialState: this.initialState,
         // The official runtime emits { type, params }. It does not await this
         // void callback; dispatchAction already emits a structured error.
-        onAction: (action) => { this.dispatchAction(action).catch(() => {}) },
-        onStateUpdate: (formState) => this.persistState(formState),
+        onAction: (action) => { if (this.isCurrent(connection)) this.dispatchAction(action).catch(() => {}) },
+        onStateUpdate: (formState) => { if (this.isCurrent(connection)) this.persistState(formState) },
         toolProvider: this.toolProvider(),
-        onError: (error) => this.handleError(error),
+        onError: (error) => { if (this.isCurrent(connection)) this.handleError(error) },
       })
     )
+    return true
   }
 
   async verifyLibrary(library) {
@@ -203,6 +209,7 @@ export default class extends Controller {
     this.state.streaming = envelope.streaming === true
     this.state.completed = !this.state.streaming
     this.render()
+    this.dispatch("snapshot-applied", { surfaceId: this.surfaceId, sequence: envelope.sequence })
   }
 
   requestSnapshot() {
@@ -224,6 +231,8 @@ export default class extends Controller {
   // --- Actions -------------------------------------------------------------
 
   async dispatchAction(payload = {}) {
+    const connection = this.connection
+    if (!this.isCurrent(connection)) throw new DOMException("Surface disconnected", "AbortError")
     const body = {
       action: payload.action ?? payload.name ?? payload.type,
       args: this.actionArguments(payload),
@@ -241,6 +250,7 @@ export default class extends Controller {
         headers: this.headers(),
         body: JSON.stringify(body),
       })
+      if (!this.isCurrent(connection)) throw new DOMException("Surface disconnected", "AbortError")
       if (response.redirected) {
         throw Object.assign(new Error("Action request was redirected; authentication may have expired"), { code: "unauthorized" })
       }
@@ -253,8 +263,9 @@ export default class extends Controller {
       } catch {
         throw Object.assign(new Error("Action endpoint returned malformed JSON"), { code: "invalid_response" })
       }
+      if (!this.isCurrent(connection)) throw new DOMException("Surface disconnected", "AbortError")
       if (!response.ok) {
-        throw Object.assign(new Error(json?.error?.message || "action failed"), { code: json?.error?.code })
+        throw Object.assign(new Error(json?.error?.message || "action failed"), { code: json?.error?.code || "action_failed" })
       }
       const result = json?.result
       if (!result || result.action !== body.action || result.surface_id !== body.surface_id || result.version !== body.version) {
@@ -263,7 +274,7 @@ export default class extends Controller {
       this.dispatch("action", { surfaceId: this.surfaceId, result })
       return result
     } catch (error) {
-      if (error.name !== "AbortError" || this.connection) this.handleError(error)
+      if (this.isCurrent(connection)) this.handleError(error, error.name === "AbortError" ? "request_cancelled" : "network_error")
       throw error
     }
   }
@@ -284,6 +295,7 @@ export default class extends Controller {
   // Every browser `Query()`/`Mutation()` tool call is routed to the same
   // server endpoint; the host registry decides what is permitted.
   toolProvider() {
+    const connection = this.connection
     const reserved = new Set([ "callTool", "then", "__proto__", "constructor", "prototype", "toJSON" ])
     return this.tools ||= new Proxy(
       {},
@@ -291,7 +303,10 @@ export default class extends Controller {
         has: (_target, name) => typeof name === "string" && !reserved.has(name),
         get: (_target, name) => {
           if (typeof name !== "string" || reserved.has(name)) return undefined
-          return (args) => this.dispatchAction({ action: name, args: args ?? {} }).then((result) => result.value)
+          return (args) => {
+            if (!this.isCurrent(connection)) return Promise.reject(new DOMException("Surface disconnected", "AbortError"))
+            return this.dispatchAction({ action: name, args: args ?? {} }).then((result) => result.value)
+          }
         },
       }
     )
@@ -310,16 +325,18 @@ export default class extends Controller {
     this.element.setAttribute("aria-busy", this.state.streaming ? "true" : "false")
   }
 
-  handleError(error) {
+  handleError(error, fallbackCode = "renderer_error") {
     // Renderer#onError receives an array, including [] after successful parses.
     if (Array.isArray(error)) {
       if (error.length === 0) return
       error = Object.assign(new Error(error.map((entry) => entry.message || String(entry)).join("; ")),
         { code: "renderer_error" })
     }
-    console.error("[openui-rails]", error)
-    this.dispatch("error", { surfaceId: this.surfaceId, message: error?.message, code: error?.code })
+    this.dispatch("error", { surfaceId: this.surfaceId, message: error?.message,
+      code: typeof error?.code === "string" ? error.code : fallbackCode })
   }
+
+  isCurrent(connection) { return !!connection && connection === this.connection && this.element.isConnected }
 
   headers() {
     const token = document.querySelector("meta[name='csrf-token']")?.content

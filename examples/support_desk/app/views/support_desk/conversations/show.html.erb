@@ -1,6 +1,7 @@
 <header>
   <h1>Support Desk</h1>
   <span><%= current_actor.name %> · <%= current_actor.tenant_id %> tenant</span>
+  <%= link_to "Conversations", root_path %>
   <%= button_to "Sign out", session_path, method: :delete %>
 </header>
 <p class="notice">Recorded response, real OpenUI runtime. Your Rails host owns the ticket and conversation.</p>
@@ -8,9 +9,18 @@
          data-support-desk-stream-url="<%= stream_conversation_path(@conversation) %>"
          data-support-desk-snapshot-url="<%= snapshot_conversation_path(@conversation) %>"
          data-support-desk-state-url="<%= state_conversation_path(@conversation) %>"
-         data-action="openui:state->support-desk#saveState openui:snapshot-required->support-desk#recover openui:action->support-desk#action openui:error->support-desk#error">
+         data-action="openui:ready->support-desk#ready openui:snapshot-applied->support-desk#restored openui:state->support-desk#saveState openui:snapshot-required->support-desk#recover openui:action->support-desk#action openui:error->support-desk#error">
   <%= openui_surface(surface: @conversation.surface, label: "Support ticket") %>
   <div id="desk-envelopes" hidden></div>
   <p role="status" id="desk-status">Ready</p>
   <p role="alert" id="desk-error"></p>
+  <aside id="desk-fallback" class="notice" aria-labelledby="desk-fallback-title">
+    <h2 id="desk-fallback-title">Ticket details and recovery</h2>
+    <p><%= @conversation.ticket.title %> · <%= @conversation.ticket.status %></p>
+    <p>If the interactive view is unavailable, review these saved details. Reloading does not resubmit your last action.</p>
+    <%= link_to "Reload conversation", conversation_path(@conversation), data: { turbo: false } %>
+    <%= link_to "Sign in again", root_path, id: "desk-sign-in", data: { turbo: false }, hidden: true %>
+    <button id="desk-recover" type="button" disabled aria-busy="false" aria-describedby="desk-error"
+            data-action="support-desk#recover">Restore saved response</button>
+  </aside>
 </section>

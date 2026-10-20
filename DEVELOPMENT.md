@@ -17,7 +17,7 @@ authorizes a live call. Follow this loop for each feature:
 ```sh
 bin/check-reference
 bin/check-reference --runtime tmp/real-runtime
-bin/check-reference --gem tmp/package/openui-rails-0.4.0.gem --runtime tmp/real-runtime
+bin/check-reference --gem tmp/package/openui-rails-0.5.0.gem --runtime tmp/real-runtime
 # Focus one browser scenario:
 bin/check-reference --runtime tmp/real-runtime --name test_a_lost_turbo_envelope_recovers_from_the_scoped_snapshot
 ```

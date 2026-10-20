@@ -129,6 +129,14 @@ shared replay storage does not guarantee exactly-once external effects. See
 
 ## Adapt the source
 
+The host keeps ordinary HTML ticket details and native reload, snapshot, and
+sign-in controls outside the renderer. Runtime and library errors leave this
+fallback available. Sequence gaps make one authorized snapshot read; a failed
+read can be retried explicitly. Authentication expiry requires a fresh sign-in,
+and a stale or unknown action outcome requires canonical-state review. No
+recovery control automatically repeats the previous mutation. See
+[Diagnostics and Recovery]({% link _advanced/diagnostics-and-recovery.md %}).
+
 The gem includes `examples/support_desk`. `boot.rb` opts the reference code into
 a host, and `install.rb` wires that explicit reference into a generated app.
 It is not loaded by `require "openui/rails"` and is not a general-purpose app

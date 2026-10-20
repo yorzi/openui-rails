@@ -6,12 +6,17 @@ OpenUI runtime, SQLite, importmap, and HTTP Turbo Streams. It opts into the
 Active Record idempotency store and retains a unique business receipt for closing
 a ticket. Shared claims do not replace that database constraint.
 
+The plain HTML fallback provides ticket details, an explicit reload, and a fresh
+sign-in. Snapshot recovery is scoped and single-flight. Unknown action outcomes
+are never retried automatically. Browser checks cover failure feedback, keyboard
+recovery, and Turbo restoration as well as the successful workflow.
+
 From the repository:
 
 ```sh
 mkdir -p tmp/package
-bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.4.0.gem
-bin/check-reference --gem tmp/package/openui-rails-0.4.0.gem --runtime tmp/real-runtime
+bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.5.0.gem
+bin/check-reference --gem tmp/package/openui-rails-0.5.0.gem --runtime tmp/real-runtime
 ```
 
 Fetch the runtime first. See the [complete guide](https://openui-rails.wangyaodi.com/reference-workflow/)

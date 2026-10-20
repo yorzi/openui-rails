@@ -41,6 +41,7 @@ class ReferenceWorkflowTest < Minitest::Test
   include Capybara::Minitest::Assertions
 
   def setup
+    OpenUI::Rails.configuration.idempotency_store = OpenUI::Rails::Actions::Idempotency::ActiveRecordStore.new
     SupportDesk::Receipt.delete_all
     SupportDesk::Conversation.delete_all
     SupportDesk::Ticket.delete_all
@@ -94,6 +95,12 @@ class ReferenceWorkflowTest < Minitest::Test
     visit "/support"
     page.execute_script(<<~JS)
       window.droppedEnvelope = false
+      window.snapshotRequests = 0
+      const originalFetch = window.fetch
+      window.fetch = (url, options) => {
+        if (String(url).endsWith('/snapshot')) window.snapshotRequests++
+        return originalFetch(url, options)
+      }
       document.addEventListener("turbo:before-stream-render", event => {
         const element = event.target.templateElement.content.querySelector("[data-openui-envelope-payload]")
         if (!element || window.droppedEnvelope) return
@@ -108,6 +115,8 @@ class ReferenceWorkflowTest < Minitest::Test
     assert_text "North delivery question"
     assert_selector "[data-controller='openui'][aria-busy='false']"
     assert_equal true, page.evaluate_script("window.droppedEnvelope")
+    assert_equal 1, page.evaluate_script("window.snapshotRequests")
+    assert_no_selector "#desk-fallback"
     assert_empty find("#desk-error", visible: :all).text
   end
 
@@ -160,6 +169,16 @@ class ReferenceWorkflowTest < Minitest::Test
     assert_selector "#desk-error", text: "Action not permitted. Sign in again."
     assert_equal "open", alice_conversation.ticket.reload.status
     assert_equal 0, SupportDesk::Receipt.count
+    late = OpenUI::Rails::Stream::Envelope.snapshot(message_id: alice_conversation.message_id,
+      sequence: alice_conversation.next_sequence + 1, response: alice_conversation.response).to_h
+    page.execute_script("document.dispatchEvent(new CustomEvent('openui:envelope', {detail: arguments[0]}))", late)
+    assert_selector "#desk-error", text: "Action not permitted. Sign in again."
+    assert_selector "[data-controller='openui'][inert]"
+    click_link "Sign in again"
+    click_button "Sign in as Alice"
+    assert_button "Close ticket"
+    assert_no_selector "#desk-fallback"
+    assert_equal 0, SupportDesk::Receipt.count
   end
 
   def test_duplicate_and_stale_submissions_have_one_persisted_effect
@@ -205,6 +224,143 @@ class ReferenceWorkflowTest < Minitest::Test
     assert_equal 422, response["status"]
     assert_equal "csrf_failed", JSON.parse(response["text"]).dig("error", "code")
     assert_equal "open", alice_conversation.ticket.reload.status
+  end
+
+  def test_a_missing_runtime_has_a_keyboard_reachable_html_fallback
+    page.driver.browser.execute_cdp("Network.enable")
+    page.driver.browser.execute_cdp("Network.setBlockedURLs", urls: [ "*#{OpenUI::Rails::RuntimeAsset.url}*" ])
+    visit "/support"
+    click_button "Sign in as Alice"
+    assert_selector "#desk-error", text: "Interactive view could not load"
+    assert_selector "#desk-fallback", text: "North delivery question"
+    assert_selector "[data-controller='openui'][aria-busy='false']"
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    assert page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth")
+    save_screenshot(File.join(Capybara.save_path, "reference-fallback-mobile.png"))
+    page.driver.browser.execute_cdp("Network.setBlockedURLs", urls: [])
+    10.times do
+      break if page.evaluate_script("document.activeElement?.textContent.trim() === 'Reload conversation'")
+      page.driver.browser.action.send_keys(:tab).perform
+    end
+    assert_equal "Reload conversation", page.evaluate_script("document.activeElement?.textContent.trim()")
+    page.driver.browser.action.send_keys(:enter).perform
+    assert_button "Close ticket"
+    assert_no_selector "#desk-fallback"
+    assert_equal 0, SupportDesk::Receipt.count
+  end
+
+  def test_a_library_mismatch_falls_back_until_the_page_is_reloaded
+    sign_in
+    page.execute_script(<<~JS)
+      const surface = document.querySelector('[data-controller=openui]'), parent = surface.parentElement
+      surface.dataset.openuiLibraryFingerprint = 'sha256:wrong'
+      surface.remove()
+      setTimeout(() => parent.prepend(surface), 0)
+    JS
+    assert_selector "#desk-error", text: "different library"
+    assert_selector "#desk-fallback", text: "North delivery question"
+    find_link("Reload conversation").send_keys(:enter)
+    assert_button "Close ticket"
+    assert_no_selector "#desk-fallback"
+    assert_equal 0, SupportDesk::Receipt.count
+  end
+
+  def test_provider_failure_and_oversize_offer_reload_without_retrying_mutations
+    sign_in
+    %w[provider_rejected stream_too_large].each do |code|
+      sequence = alice_conversation.reload.next_sequence
+      snapshot = OpenUI::Rails::Stream::Envelope.snapshot(message_id: alice_conversation.message_id,
+        sequence: sequence, response: alice_conversation.response, streaming: true).to_h
+      error = if code == "stream_too_large"
+        page.execute_script("document.querySelector('[data-controller=openui]').dataset.openuiStreamByteLimit = String(arguments[0])",
+          alice_conversation.response.bytesize + 8)
+        OpenUI::Rails::Stream::Envelope.delta(message_id: alice_conversation.message_id,
+          sequence: sequence + 1, delta: "x" * 16).to_h
+      else
+        OpenUI::Rails::Stream::Envelope.error(message_id: alice_conversation.message_id,
+          sequence: sequence + 1, code: code, message: "recorded provider failure").to_h
+      end
+      page.execute_script(<<~JS, snapshot, error)
+        for (const detail of arguments) document.dispatchEvent(new CustomEvent('openui:envelope', {detail}))
+      JS
+      assert_selector "#desk-fallback", text: "North delivery question"
+      assert_selector "#desk-error", text: code == "provider_rejected" ? "Generation stopped" : "too large"
+      assert_selector "[data-controller='openui'][aria-busy='false']"
+      assert_equal 0, SupportDesk::Receipt.count
+      find_link("Reload conversation").send_keys(:enter)
+      assert_button "Close ticket"
+      assert_no_selector "#desk-fallback"
+    end
+  end
+
+  def test_a_stale_action_requires_an_explicit_reload_before_another_mutation
+    sign_in
+    alice_conversation.update!(version: 1)
+    click_button "Close ticket"
+    assert_selector "#desk-error", text: "Conversation changed"
+    assert_selector "#desk-fallback"
+    assert_equal 0, SupportDesk::Receipt.count
+    find_link("Reload conversation").send_keys(:enter)
+    find_button("Close ticket").send_keys(:enter)
+    assert_text "closed"
+    assert_equal 1, SupportDesk::Receipt.count
+  end
+
+  def test_turbo_restoration_does_not_restart_streams_or_duplicate_actions
+    sign_in
+    page.execute_script(<<~JS)
+      window.deskRequests = []
+      sessionStorage.deskCloseRequests = '0'
+      const originalFetch = window.fetch
+      window.fetch = (url, options) => {
+        const path = String(url).split('/').pop()
+        if (['stream', 'snapshot', 'actions'].includes(path)) {
+          const action = path === 'actions' ? JSON.parse(options.body).action : path
+          window.deskRequests.push(action)
+          if (action === 'close_ticket') sessionStorage.deskCloseRequests = String(Number(sessionStorage.deskCloseRequests) + 1)
+        }
+        return originalFetch(url, options)
+      }
+    JS
+    click_link "Conversations"
+    assert_text "Support Desk reference host"
+    page.go_back
+    assert_button "Close ticket"
+    assert_selector "[data-controller='openui'][aria-busy='false']", count: 1
+    assert_no_selector "#desk-fallback"
+    assert_equal [ "ticket_lookup" ], page.evaluate_script("window.deskRequests")
+    click_button "Close ticket"
+    assert_text "closed"
+    assert_equal 1, SupportDesk::Receipt.count
+    assert_equal "1", page.evaluate_script("sessionStorage.deskCloseRequests")
+  end
+
+  def test_a_failed_snapshot_read_waits_for_an_explicit_keyboard_retry
+    visit "/support"
+    page.execute_script(<<~JS)
+      window.snapshotAttempts = 0
+      const originalFetch = window.fetch
+      window.fetch = (url, options) => {
+        if (String(url).endsWith('/snapshot') && ++window.snapshotAttempts === 1) return Promise.resolve(new Response('', {status: 503}))
+        return originalFetch(url, options)
+      }
+      document.addEventListener('turbo:before-stream-render', event => {
+        const element = event.target.templateElement.content.querySelector('[data-openui-envelope-payload]')
+        if (element && JSON.parse(element.dataset.openuiEnvelopePayload).sequence === 1) event.preventDefault()
+      })
+    JS
+    click_button "Sign in as Alice"
+    assert_selector "#desk-fallback"
+    assert_selector "#desk-error", text: "Request failed"
+    assert_button "Restore saved response", disabled: false
+    assert_equal "false", find_button("Restore saved response")["aria-busy"]
+    assert_equal 1, page.evaluate_script("window.snapshotAttempts")
+    find_button("Restore saved response").send_keys(:enter)
+    assert_selector "[data-recovered='true']"
+    assert_no_selector "#desk-fallback"
+    assert_selector "[data-controller='openui'][aria-busy='false']"
+    assert_equal 2, page.evaluate_script("window.snapshotAttempts")
+    assert_equal 0, SupportDesk::Receipt.count
   end
 
   private

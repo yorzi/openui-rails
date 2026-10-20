@@ -50,6 +50,11 @@ The bridge orders its own frames but cannot guarantee that Action Cable or Turbo
 
 ## Implement snapshot recovery in the host
 
+Use `openui:snapshot-applied` to confirm the bridge accepted a snapshot.
+Fetching a response alone does not establish acceptance. The
+[Diagnostics and Recovery guide]({% link _advanced/diagnostics-and-recovery.md %})
+documents terminal notifications, browser events, and recovery outcomes.
+
 The gem does not persist responses, provide a snapshot endpoint, or decide who can read a snapshot. The `openui:snapshot-required` event includes the sequence the client expects. Your host should load the current response through an authorized path, create an `openui.snapshot` envelope with a sequence the client accepts, and dispatch it to the page. Use the same surface and tenant checks as the action endpoint.
 
 ## Restore a persisted response

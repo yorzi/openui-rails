@@ -1,7 +1,8 @@
 ---
 layout: default
 title: What's New in 0.4
-nav_order: 5
+nav_order: 4
+parent: Release History
 description: Share action claims and JSON results across Rails workers with optional SQLite storage.
 ---
 
@@ -15,8 +16,8 @@ After reading this guide, you will know:
 * How to opt into shared action storage without replacing the default store.
 * Which concurrency and crash boundaries the SQLite adapter verifies.
 
-{% unless site.released %}Version `{{ site.version }}` is an unpublished development candidate.
-The stable site stays on the latest published release.{% endunless %}
+Version 0.4 adds optional shared replay storage. The stable site follows the
+latest published release.
 
 ## Share action results
 

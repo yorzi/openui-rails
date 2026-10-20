@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Content-free `action.openui_rails` and `stream.openui_rails` notifications with
+  monotonic duration, fixed outcomes, replay status, and stream watermarks.
+- Browser `openui:ready` and `openui:snapshot-applied` events for host-owned
+  fallback and recovery, plus stable runtime and network failure codes.
+- Ordinary HTML fallback and explicit reload, scoped snapshot, and fresh sign-in
+  controls in the reference host, with keyboard and Turbo restoration checks.
+
+### Fixed
+
+- Late action responses cannot report into a reconnected surface. Failed
+  runtime scripts are removed so later mounts can retry loading.
+- Unmounted renderer callbacks cannot send actions, tool requests, state, or
+  errors through a new connection. A late snapshot cannot dismiss a host's
+  authentication or permission failure.
+- Browser failures use events without automatically logging raw error objects.
+
 ## [0.4.0] - 2026-10-20
 
 ### Added
