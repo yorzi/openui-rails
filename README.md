@@ -32,7 +32,7 @@ The runtime-fetch task also needs npm. RubyLLM is optional.
 
 ```ruby
 # Gemfile
-gem "openui-rails", "~> 0.5.0"
+gem "openui-rails", "~> 0.9.0"
 ```
 
 ```sh
@@ -65,11 +65,9 @@ The documentation site contains the full guides and API reference:
 - [RubyLLM](https://openui-rails.wangyaodi.com/ruby-llm/) and [production setup](https://openui-rails.wangyaodi.com/production/)
 - [Upgrading](https://openui-rails.wangyaodi.com/upgrading/) and [API reference](https://openui-rails.wangyaodi.com/api-reference/)
 
-Version `0.5.0` adds outcome diagnostics and host-owned recovery examples.
-See [What's New](https://openui-rails.wangyaodi.com/whats-new-in-0-5/) for the upgrade.
-Version `0.9.0` is an unpublished stabilization candidate that freezes the API for 1.0;
-see its [What's New](https://openui-rails.wangyaodi.com/next/whats-new-in-0-9/) and
-[Supported API](https://openui-rails.wangyaodi.com/next/supported-api/).
+Version `0.9.0` freezes the candidate API for 1.0 and fixes stream and recovery defects.
+See [What's New](https://openui-rails.wangyaodi.com/whats-new-in-0-9/) for the upgrade and
+[Supported API](https://openui-rails.wangyaodi.com/supported-api/) for the compatibility boundary.
 The API may change during `0.x`; see the
 [changelog](CHANGELOG.md) and the proposed [path to 1.0](ROADMAP.md).
 The site's stable channel follows the latest release; [/next/](https://openui-rails.wangyaodi.com/next/)

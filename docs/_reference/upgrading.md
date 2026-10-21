@@ -2,7 +2,7 @@
 layout: default
 title: Upgrading
 nav_order: 2
-description: Move to the 0.9 stabilization candidate, review its action error and stream changes, and remove deprecated settings.
+description: Upgrade to 0.9.0, review its action error and stream changes, and remove deprecated settings.
 ---
 
 # {{ page.title }}
