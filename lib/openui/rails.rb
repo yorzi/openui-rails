@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "active_support/deprecation"
 require "openui/rails/version"
 
 module OpenUI
@@ -10,6 +11,13 @@ module OpenUI
   # into a Rails engine and keeps Rails authoritative for auth, tenancy and
   # persistence.
   module Rails
+    # Deprecator for APIs removed in openui-rails 1.0. The engine registers it
+    # in `Rails.application.deprecators`, so host deprecation settings apply.
+    #
+    # @return [ActiveSupport::Deprecation]
+    def self.deprecator
+      @deprecator ||= ActiveSupport::Deprecation.new("1.0", "openui-rails")
+    end
   end
 end
 

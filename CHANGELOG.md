@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Deprecated
+
+- `config.library_name` and `config.surface_id_param` have no effect and report
+  a deprecation through the new `OpenUI::Rails.deprecator`, registered in
+  `Rails.application.deprecators`. They will be removed in 1.0.
+
 ### Changed
 
 - The action endpoint returns HTTP 500 with code `error` and the fixed message

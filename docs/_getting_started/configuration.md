@@ -65,7 +65,7 @@ After you create the matching prompt and manifest, call `OpenUI::Rails.configura
 | `on_error` | `nil` | Server-side stream error hook, called with the error and `message_id:`. An exception it raises is ignored so the error frame is still sent. Avoid logging credentials or unredacted provider input. |
 | `action_registry` | lazy `Actions::Registry` | Allowlisted action definitions. Per-action `authorize:` takes precedence over the global authorizer. |
 
-`library_name` and `surface_id_param` are legacy metadata settings. They do not choose the runtime library or change the action request's `surface_id` key.
+`library_name` and `surface_id_param` are deprecated and will be removed in 1.0. They never chose the runtime library or changed the action request's `surface_id` key. Reading or setting either one reports a deprecation through `OpenUI::Rails.deprecator`, which the engine registers in `Rails.application.deprecators`. Delete them from your initializer.
 
 ## Shared idempotency-store contract
 

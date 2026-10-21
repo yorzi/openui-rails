@@ -27,6 +27,10 @@ module OpenUI
         ::Rails.autoloaders.main.inflector.inflect("openui" => "OpenUI")
       end
 
+      initializer "openui_rails.deprecator" do |app|
+        app.deprecators[:openui_rails] = OpenUI::Rails.deprecator
+      end
+
       # Expose the surface helper to every host view.
       initializer "openui_rails.view_helper" do
         ActiveSupport.on_load(:action_view) do

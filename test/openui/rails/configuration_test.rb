@@ -18,12 +18,21 @@ module OpenUI
 
         assert_equal :turbo, config.transport
         assert_equal :self_hosted, config.runtime_assets
-        assert_equal :chat, config.library_name
         assert_equal Configuration::DEFAULT_ACTIONS_ENDPOINT, config.actions_endpoint
         assert_equal Configuration::DEFAULT_STREAM_BYTE_LIMIT, config.stream_byte_limit
         assert_equal Configuration::DEFAULT_PENDING_BYTE_LIMIT, config.pending_byte_limit
         assert_nil config.library_spec_path
         assert_nil config.prompt_path
+      end
+
+      test "legacy library_name and surface_id_param are deprecated no-ops" do
+        config = OpenUI::Rails.configuration
+
+        assert_deprecated(/library_name has no effect/, OpenUI::Rails.deprecator) { config.library_name = :custom }
+        assert_deprecated(/library_name has no effect/, OpenUI::Rails.deprecator) { assert_equal :custom, config.library_name }
+        assert_deprecated(/surface_id_param has no effect/, OpenUI::Rails.deprecator) { config.surface_id_param = :id }
+        assert_deprecated(/surface_id_param has no effect/, OpenUI::Rails.deprecator) { assert_equal :id, config.surface_id_param }
+        assert_same OpenUI::Rails.deprecator, ::Rails.application.deprecators[:openui_rails]
       end
 
       test "configure yields a memoized singleton" do

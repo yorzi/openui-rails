@@ -29,8 +29,8 @@ module OpenUI
       DEFAULT_ACTIONS_ENDPOINT = "/openui-rails/actions"
 
       attr_reader :transport, :runtime_assets
-      attr_accessor :library_spec_path, :prompt_path, :library_name,
-                    :actions_endpoint, :surface_id_param,
+      attr_accessor :library_spec_path, :prompt_path,
+                    :actions_endpoint,
                     :stream_byte_limit, :pending_byte_limit, :idempotency_ttl,
                     :authorize_action, :on_error, :action_registry, :surface_resolver, :actor_resolver,
                     :runtime_version, :runtime_url, :runtime_integrity, :local_runtime_path,
@@ -60,6 +60,32 @@ module OpenUI
         @runtime_url = nil
         @runtime_integrity = nil
         @local_runtime_path = "/openui"
+      end
+
+      # @deprecated Has no effect: the runtime library comes from the loaded
+      #   bundle and its manifest. Removed in 1.0.
+      def library_name
+        deprecated_setting(:library_name)
+        @library_name
+      end
+
+      # @deprecated Has no effect. Removed in 1.0.
+      def library_name=(value)
+        deprecated_setting(:library_name)
+        @library_name = value
+      end
+
+      # @deprecated Has no effect: action requests always use the `surface_id`
+      #   key. Removed in 1.0.
+      def surface_id_param
+        deprecated_setting(:surface_id_param)
+        @surface_id_param
+      end
+
+      # @deprecated Has no effect. Removed in 1.0.
+      def surface_id_param=(value)
+        deprecated_setting(:surface_id_param)
+        @surface_id_param = value
       end
 
       # Set the preferred host stream transport.
@@ -242,6 +268,12 @@ module OpenUI
         library_manifest
         PromptBuilder.load(self) if prompt_path
         true
+      end
+
+      private
+
+      def deprecated_setting(name)
+        OpenUI::Rails.deprecator.warn("config.#{name} has no effect and will be removed; delete it from your initializer")
       end
     end
 
