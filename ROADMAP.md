@@ -8,8 +8,10 @@ Version `0.3.0` was published on 2026-10-19; see
 Version `0.4.0` was published on 2026-10-20; see
 [its release record](RELEASE_0_4.md). Its
 [candidate validation record](VALIDATION_0_4.md) preserves the earlier local evidence.
-Version `0.5.0` is implemented as an unpublished local candidate; see
-[its validation record](VALIDATION_0_5.md). Milestones after 0.5 are proposals,
+Version `0.5.0` was published on 2026-10-21; see
+[its release record](RELEASE_0_5.md). Its
+[candidate validation record](VALIDATION_0_5.md) preserves the earlier local evidence.
+Milestones after 0.5 are proposals,
 not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
 
@@ -43,7 +45,7 @@ work is released; the 0.3 reference flow exercises the built gem. The published
 | Readiness checks have no task-level report. | `Configuration#validate!` checks files and settings but is called explicitly. | 0.2 |
 | A fresh install is not tested as a complete browser workflow. | `bin/smoke-package` boots a generated host and checks mount HTML; real-runtime interaction tests use `test/dummy`. | 0.3 |
 | Multi-process replay storage is left to each host. | Version 0.4 adds an optional SQLite-backed `ActiveRecordStore`; memory stays the default. | 0.4 |
-| Failure handling requires application-specific glue. | The 0.5 candidate adds bounded outcome notifications, a recovery guide, and host-owned HTML fallback; remote CI and publication remain pending. | 0.5 |
+| Failure handling requires application-specific glue. | Version 0.5 adds bounded outcome notifications, a recovery guide, and host-owned HTML fallback, verified through complete remote CI and the public gem. | 0.5 |
 | Live generation of usable UI has limited evidence. | The audit's live probe produced a 2-byte delta, not a complete generated UI and action round trip. | 0.9 |
 
 These are code and integration findings, not evidence of market demand.
@@ -143,9 +145,9 @@ them before 1.0. Do not claim untested database compatibility.
 
 ## 0.5.0: make failures diagnosable and recoverable
 
-This milestone is implemented as a local candidate. Acceptance evidence and
-remaining release gates are recorded in [VALIDATION_0_5.md](VALIDATION_0_5.md).
-Complete release verification before starting 0.9 stabilization. Keep later
+This milestone is implemented and published. Release acceptance is recorded in
+[RELEASE_0_5.md](RELEASE_0_5.md); [VALIDATION_0_5.md](VALIDATION_0_5.md) preserves
+the earlier candidate evidence. The next milestone is 0.9 stabilization. Keep later
 scope driven by integration feedback rather than adding unused minor releases.
 
 Document and stabilize the browser event payloads, action error codes, and host
