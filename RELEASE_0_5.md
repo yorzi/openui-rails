@@ -60,8 +60,17 @@ completed successfully and built stable 0.5.0 plus next from `main`. Actual HTTP
 checks still returned the previous stable installation and upgrade guides;
 the new What's New and Diagnostics and Recovery pages returned 404. Next
 already served the new recovery guide. This is not a successful hosted-version
-check. The README and release-record update triggers a fresh deployment;
-hosted acceptance remains pending.
+check. Commit `17d915e` triggered a
+[fresh deployment](https://github.com/yorzi/openui-rails/actions/runs/39520380280).
+HTTP and a fresh browser reload then confirmed stable 0.5.0, its installation
+command, and the new guides.
+
+One API check exposed a separate build defect: the runner's default RDoc 6.6.3.1
+silently omitted `Dispatcher#call` and the other methods after its `Struct`
+block. Local reproduction confirmed the omission; local RDoc 8.1.0 included
+them. The docs bundle now locks RDoc 8.1, the API builder uses that bundle, and
+a missing `Dispatcher#call` anchor fails the build. This changes documentation
+tooling, not the published gem. Final hosted API acceptance remains pending.
 
 ## Supported boundary and next step
 

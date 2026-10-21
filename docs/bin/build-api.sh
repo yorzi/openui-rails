@@ -11,7 +11,15 @@ docs="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source_root="${2:-$(git -C "$docs" rev-parse --show-toplevel)}"
 case "$out" in /*) ;; *) out="$PWD/$out" ;; esac
 
-( cd "$source_root" && ruby -rrdoc/rdoc -e 'RDoc::RDoc.new.document(ARGV)' -- --output "$out" --quiet lib )
+( cd "$source_root" && BUNDLE_GEMFILE="$docs/Gemfile" bundle exec ruby -rrdoc/rdoc \
+  -e 'RDoc::RDoc.new.document(ARGV)' -- --output "$out" --quiet lib )
+
+# Older RDoc versions silently omit the methods after Dispatcher's Struct block.
+ruby - "$out/OpenUI/Rails/Actions/Dispatcher.html" <<'RUBY'
+html = File.read(ARGV.fetch(0))
+abort "API reference is missing Dispatcher#call" unless html.include?('id="method-i-call"')
+RUBY
+
 ruby "$docs/bin/export-api-markdown.rb" "$out" "$source_root" "OpenUI Rails"
 
 main="OpenUI"
