@@ -59,18 +59,16 @@ for the watermark contract. Completed surfaces cannot also be streaming.
 
 You can override mount-specific values with `stream:`, `dom_id:`, `initial_state:`, and `label:`. Hashes accept symbol or string keys. Host records can expose `id`, `version`, `library_version`, `response`, `context`, `message_id`, `next_sequence`, and `completed`.
 
-When `library_spec_path` is configured, the helper rejects a surface whose non-nil `library_version` differs from the configured manifest fingerprint. The browser compares the loaded library with the same fingerprint before mounting. Without a manifest, the gem cannot verify that a prompt, stored response, and runtime library belong together.
+When `library_spec_path` is configured, the helper raises `OpenUI::Rails::LibraryVersionError` for a surface whose non-nil `library_version` differs from the configured manifest fingerprint. Rescue it in your view or controller to render ordinary HTML fallback, or regenerate the response with the current library. The browser compares the loaded library with the same fingerprint before mounting. Without a manifest, the gem cannot verify that a prompt, stored response, and runtime library belong together.
 
 ## Handle browser events
 
-Listen on the surface element for bubbling events and provide host-owned UI or persistence as needed. The controller receives `openui:envelope`; it emits these events:
-
-| Event | Detail fields | Host responsibility |
-| --- | --- | --- |
-| `openui:action` | `surfaceId`, `result` | Update host UI after a successful action or tool call. |
-| `openui:state` | `surfaceId`, `state` | Persist form state if it should survive a reload. |
-| `openui:error` | `surfaceId`, `code`, `message` | Show a fallback or recovery control. Some upstream errors have no code. |
-| `openui:snapshot-required` | `surfaceId`, `sequence` | Fetch and dispatch an authorized snapshot after a sequence gap. |
+Listen on the surface element for bubbling events and provide host-owned UI or
+persistence as needed. The controller receives `openui:envelope` and emits
+`openui:ready`, `openui:action`, `openui:state`, `openui:error`,
+`openui:snapshot-required`, and `openui:snapshot-applied`. Every error event
+carries a `code`. The [Diagnostics and Recovery]({% link _advanced/diagnostics-and-recovery.md %})
+guide documents each event's fields and the matching host response.
 
 The bridge does not provide fallback UI, snapshot endpoints, or an automatic reconnection policy. A library mismatch reports `library_version_mismatch` and prevents mounting. See [Streaming Responses]({% link _core_features/streaming.md %}) for recovery behavior.
 

@@ -77,6 +77,31 @@ The endpoint returns JSON with an `error` object containing `code` and `message`
 
 The browser also reports `unauthorized` for a redirect and `invalid_response` for invalid endpoint responses through `openui:error`. A browser error event does not carry an HTTP status for these local checks. A tool call receives the handler's `value`; the `openui:action` event carries the full result.
 
+## Open a URL
+
+The default library's `@OpenUrl` step does not navigate. The bridge posts it
+as an `open_url` action with `{ "url" => "..." }`, so it fails with
+`unknown_action` until you register it. Check the URL against your own
+allowlist in the schema, so a rejected URL fails before any idempotency claim:
+
+```ruby
+allowed_url = ->(value) do
+  uri = URI.parse(value)
+  uri.is_a?(URI::HTTPS) && uri.host == "help.example.com"
+rescue URI::InvalidURIError, TypeError
+  false
+end
+
+OpenUI::Rails.actions.register "open_url",
+  schema: { "url" => allowed_url },
+  authorize: ->(invocation) { invocation.actor.present? },
+  handler: ->(invocation) { { "url" => invocation.args.fetch("url") } }
+```
+
+Then navigate in host code from `openui:action` when `result.action` is
+`open_url`. The model chooses the URL, so never navigate to one the server has
+not approved.
+
 ## Continue a conversation
 
 The pinned runtime emits `@ToAssistant` metadata beside its `params`. The
