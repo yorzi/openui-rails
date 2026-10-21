@@ -39,7 +39,8 @@ module OpenUI
 
         # Yield ordered envelopes for every chunk from a pull-based source.
         # Provider errors become a structured error envelope. Exceptions raised
-        # by the consumer block propagate to the caller.
+        # by the consumer block propagate to the caller. Pulling stops once the
+        # writer terminates, so an oversized response does not drain the source.
         #
         # @param source [#each] yields String chunks
         # @yieldparam envelope [Envelope]
@@ -60,6 +61,7 @@ module OpenUI
             # Transport/consumer failures are not provider failures. Let the
             # host retry or report them without recursively broadcasting errors.
             envelopes.each { |envelope| yield envelope }
+            return if writer.terminated?
           end
           writer.finish.each { |envelope| yield envelope }
         end
@@ -111,6 +113,12 @@ module OpenUI
             @terminated = false
             @started = Instrumentation.now
           end
+
+          # Whether a completion or error envelope has ended this stream. Stop
+          # reading the provider once it is true; later pushes are ignored.
+          #
+          # @return [Boolean]
+          def terminated? = @terminated
 
           # Append a chunk and return a delta once the pending threshold is reached.
           # A chunk that exceeds the total stream limit returns an error envelope.

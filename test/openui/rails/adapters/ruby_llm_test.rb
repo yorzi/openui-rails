@@ -131,6 +131,18 @@ module OpenUI
           assert envelopes.all? { |envelope| envelope.message_id == "msg-9" }
         end
 
+        test "aborts the provider stream after the byte limit" do
+          OpenUI::Rails.configuration.stream_byte_limit = 2048
+          generated = 0
+          chunks = Enumerator.new { |yielder| 100.times { generated += 1; yielder << Chunk.new("x" * 1024) } }
+
+          envelopes = collect(FakeChat.new(chunks))
+
+          assert_equal [ "openui.delta", "openui.delta", "openui.error" ], envelopes.map(&:type)
+          assert_equal "stream_too_large", envelopes.last.code
+          assert_equal 3, generated
+        end
+
         test "classifies a provider failure as a structured error" do
           envelopes = collect(FailingChat.new(::RubyLLM::Error.new("provider down")))
 

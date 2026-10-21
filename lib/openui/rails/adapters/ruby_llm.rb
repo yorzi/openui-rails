@@ -17,6 +17,10 @@ module OpenUI
       module RubyLLM
         STRATEGIES = %i[complete ask].freeze
 
+        # Internal signal that aborts the provider stream after a terminal frame.
+        Halt = Class.new(StandardError)
+        private_constant :Halt
+
         class << self
           # Stream a RubyLLM completion, yielding ordered {Stream::Envelope}s.
           #
@@ -47,6 +51,7 @@ module OpenUI
 
             begin
               consumer_failed = false
+              halted = false
               deliver = lambda do |envelope|
                 begin
                   block.call(envelope)
@@ -60,10 +65,17 @@ module OpenUI
                 next if text.nil?
 
                 writer.push(text).each(&deliver)
+                # A terminal frame (the byte limit) has already been delivered.
+                # Raise out of the provider callback so it stops generating.
+                if writer.terminated?
+                  halted = true
+                  raise Halt
+                end
               end
               writer.finish.each(&deliver)
             rescue StandardError => e
               raise if consumer_failed
+              return writer if halted
 
               envelope = writer.error_for(e, code: error_code_for(e))
               block.call(envelope) if envelope

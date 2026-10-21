@@ -67,6 +67,18 @@ module OpenUI
           refute envelopes.any?(&:completed?)
         end
 
+        test "stops pulling the source once the byte limit ends the stream" do
+          @configuration.stream_byte_limit = 8
+          @configuration.pending_byte_limit = 4
+          pulled = 0
+          source = Enumerator.new { |chunks| 100.times { pulled += 1; chunks << "aaaa" } }
+
+          envelopes = bridge.envelopes(source).to_a
+
+          assert_equal "stream_too_large", envelopes.last.code
+          assert_equal 3, pulled
+        end
+
         test "surfaces a source failure as a structured, sanitized error envelope" do
           seen = nil
           @configuration.on_error = ->(error, message_id:) { seen = [ error.class, message_id ] }

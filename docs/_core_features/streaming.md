@@ -35,6 +35,8 @@ transport.to_a.map(&:to_h)
 
 The broadcaster emits `openui.delta`, then `openui.completed` when the source finishes. Sequence numbers start at zero for each message. Small chunks are buffered until `pending_byte_limit` is reached or the writer finishes; the default flush threshold is 32 KiB. The whole message is limited to 1 MiB by default.
 
+A chunk that pushes the message past `stream_byte_limit` produces a `stream_too_large` error frame and terminates the writer. `Bridge#envelopes` and `Broadcaster.broadcast` then stop reading the source. With a callback-based provider, check `writer.terminated?` after each `push` and stop the provider yourself; later pushes are ignored.
+
 For callback-based providers, create a writer and publish the envelopes returned by `push` and `finish`. `Stream::Broadcaster` combines the same writer with any object that responds to `broadcast(envelope)`.
 
 ## Envelope types

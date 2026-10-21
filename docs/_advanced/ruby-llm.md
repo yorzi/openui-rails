@@ -37,7 +37,7 @@ end
 
 The default `:complete` strategy adds the question as a user message and calls `complete` with a block. The adapter loads the system instruction from the configured prompt and manifest, passes it through `with_instructions` when available, and normalizes string chunks or chunks with `content`. Choose `strategy: :ask` if the host uses RubyLLM's `ask` API.
 
-The adapter uses the configured byte limits and emits ordered `Stream::Envelope` objects. It converts provider failures into structured error frames without including the provider's error text. Exceptions raised by your envelope consumer propagate to the host.
+The adapter uses the configured byte limits and emits ordered `Stream::Envelope` objects. When a response exceeds `stream_byte_limit`, the adapter delivers the `stream_too_large` frame and raises out of RubyLLM's streaming block to stop generation. RubyLLM then adds no assistant message to the chat. It converts provider failures into structured error frames without including the provider's error text. Exceptions raised by your envelope consumer propagate to the host.
 
 ## Compatibility boundary
 

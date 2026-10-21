@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- A response that exceeds `stream_byte_limit` no longer drains the provider.
+  `Bridge#envelopes`, `Broadcaster.broadcast`, and the RubyLLM adapter stop
+  reading after the `stream_too_large` frame. `Writer#terminated?` lets
+  callback-based providers do the same.
+
 ## [0.5.0] - 2026-10-21
 
 ### Added

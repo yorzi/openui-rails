@@ -24,6 +24,7 @@ module OpenUI
         attr_reader :transport, :message_id, :library_version
 
         # Broadcast every envelope produced by an enumerable source of chunks.
+        # Iteration stops after a terminal envelope, such as a byte-limit error.
         #
         # @param source [#each] yields String chunks
         # @param options [Hash] arguments forwarded to the constructor
@@ -31,7 +32,10 @@ module OpenUI
         # @return [Broadcaster]
         def self.broadcast(source, **options)
           broadcaster = new(**options)
-          source.each { |chunk| broadcaster.push(chunk) }
+          source.each do |chunk|
+            broadcaster.push(chunk)
+            break if broadcaster.writer.terminated?
+          end
           broadcaster.finish
         end
 

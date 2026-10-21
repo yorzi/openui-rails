@@ -45,6 +45,17 @@ module OpenUI
           assert @transport.envelopes.last.completed?
         end
 
+        test "broadcast stops reading the source after the byte limit" do
+          @configuration.stream_byte_limit = 8
+          pulled = 0
+          source = Enumerator.new { |chunks| 100.times { pulled += 1; chunks << "aaaa" } }
+
+          Broadcaster.broadcast(source, transport: @transport, message_id: "msg-1", configuration: @configuration)
+
+          assert_equal 3, pulled
+          assert_equal "stream_too_large", @transport.envelopes.last.code
+        end
+
         test "push and finish return self for chaining" do
           subject = broadcaster
 
