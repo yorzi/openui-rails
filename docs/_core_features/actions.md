@@ -73,6 +73,7 @@ The endpoint returns JSON with an `error` object containing `code` and `message`
 | `replay` | 409 | The key is still pending or was reused for a different request. |
 | `invalid_action` | 422 | The payload, arguments, or required confirmation are invalid. |
 | `csrf_failed` | 422 | The authenticity token is invalid. |
+| `error` | 500 | A server-side gem error, such as an unserializable result or an actor without a stable id. The message is always `action failed`; the server log has the details. The handler may already have run. |
 
 The browser also reports `unauthorized` for a redirect and `invalid_response` for invalid endpoint responses through `openui:error`. A browser error event does not carry an HTTP status for these local checks. A tool call receives the handler's `value`; the `openui:action` event carries the full result.
 

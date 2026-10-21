@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The action endpoint returns HTTP 500 with code `error` and the fixed message
+  `action failed` for server-side gem errors, such as an unserializable result.
+  It previously returned 422 with the internal message. Details go to the log.
+
 ### Fixed
 
 - A response that exceeds `stream_byte_limit` no longer drains the provider.

@@ -79,6 +79,16 @@ class ActionsEndpointTest < ActionDispatch::IntegrationTest
     assert_equal 1, calls
   end
 
+  test "a server-side gem error is a generic 500 without internal details" do
+    register("orders.refresh")
+    @config.actor_resolver = ->(_controller) { Object.new }
+
+    post "/openui-rails/actions", params: payload, as: :json
+
+    assert_response :internal_server_error
+    assert_equal({ "code" => "error", "message" => "action failed" }, JSON.parse(response.body)["error"])
+  end
+
   test "a missing CSRF token is rejected when forgery protection is on" do
     register("orders.refresh")
     ActionController::Base.allow_forgery_protection = true

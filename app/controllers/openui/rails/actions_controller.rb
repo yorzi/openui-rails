@@ -48,9 +48,17 @@ module OpenUI
                status: :unprocessable_content
       end
 
+      # Request errors return their own message. Any other gem error is a
+      # server-side fault, possibly after the handler ran: log it and return a
+      # generic message so configuration details never reach the browser.
       def render_domain_error(error)
-        render json: { error: { code: error_code(error), message: error.message } },
-               status: error_status(error)
+        code = error_code(error)
+        if code == "error"
+          logger&.error("[openui-rails] action failed: #{error.class}: #{error.message}")
+          render json: { error: { code: code, message: "action failed" } }, status: :internal_server_error
+        else
+          render json: { error: { code: code, message: error.message } }, status: error_status(error)
+        end
       end
 
       def error_code(error)
@@ -62,7 +70,8 @@ module OpenUI
         when UnknownActionError then :not_found
         when UnauthorizedActionError then :forbidden
         when StaleSurfaceError, ReplayError then :conflict
-        else :unprocessable_content
+        when InvalidActionError then :unprocessable_content
+        else :internal_server_error
         end
       end
     end
