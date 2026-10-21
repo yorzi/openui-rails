@@ -8,8 +8,8 @@
   url: /api-reference/
   collections:
     - reference
-- title: What's New in 0.5
-  url: /whats-new-in-0-5/
+- title: What's New in 0.9
+  url: /whats-new-in-0-9/
 - title: Releases
   url: https://github.com/yorzi/openui-rails/releases
 - title: Roadmap

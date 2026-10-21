@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- A Supported API reference page that names the Ruby methods, settings, tasks,
+  events, wire contracts, and runtime pin policy covered by 1.x compatibility.
+
 ### Deprecated
 
 - `config.library_name` and `config.surface_id_param` have no effect and report
@@ -17,6 +22,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The action endpoint returns HTTP 500 with code `error` and the fixed message
   `action failed` for server-side gem errors, such as an unserializable result.
   It previously returned 422 with the internal message. Details go to the log.
+- `OpenUI::Rails::RuntimeAsset` is marked internal. Configure runtime assets
+  through `Configuration`.
 
 ### Fixed
 

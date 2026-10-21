@@ -67,6 +67,9 @@ The documentation site contains the full guides and API reference:
 
 Version `0.5.0` adds outcome diagnostics and host-owned recovery examples.
 See [What's New](https://openui-rails.wangyaodi.com/whats-new-in-0-5/) for the upgrade.
+Version `0.9.0` is an unpublished stabilization candidate that freezes the API for 1.0;
+see its [What's New](https://openui-rails.wangyaodi.com/next/whats-new-in-0-9/) and
+[Supported API](https://openui-rails.wangyaodi.com/next/supported-api/).
 The API may change during `0.x`; see the
 [changelog](CHANGELOG.md) and the proposed [path to 1.0](ROADMAP.md).
 The site's stable channel follows the latest release; [/next/](https://openui-rails.wangyaodi.com/next/)

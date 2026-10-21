@@ -2,6 +2,7 @@
 layout: default
 title: What's New in 0.5
 nav_order: 5
+parent: Release History
 description: Observe action and stream outcomes and recover failed interfaces through host-owned controls.
 ---
 
@@ -15,9 +16,6 @@ After reading this guide, you will know:
 * How to subscribe to content-free server notifications.
 * How browser events support fallback, session recovery, and snapshot recovery.
 * Which failures require an explicit reload rather than another mutation.
-
-{% unless site.released %}Version `{{ site.version }}` is an unpublished development candidate.
-The stable site stays on the latest published release.{% endunless %}
 
 ## Observe bounded outcomes
 

@@ -2,7 +2,7 @@
 layout: default
 title: Upgrading
 nav_order: 2
-description: Adopt outcome notifications and explicit recovery while preserving your host authorization and replay storage.
+description: Move to the 0.9 stabilization candidate, review its action error and stream changes, and remove deprecated settings.
 ---
 
 # {{ page.title }}
@@ -12,11 +12,11 @@ description: Adopt outcome notifications and explicit recovery while preserving 
 
 After reading this guide, you will know:
 
-* How to upgrade your application to 0.5.0.
-* Which notification and browser behavior changes need review.
-* How to retain host-owned recovery and business safeguards.
+* How to upgrade your application to 0.9.0.
+* Which endpoint, stream, and browser behavior changes need review.
+* Which deprecated settings to remove before 1.0.
 
-## Upgrade from 0.4.0
+## Upgrade from 0.5.0
 
 {% if site.docs_unreleased %}This channel follows `main`.
 {% unless site.released %}Version `{{ site.version }}` is an unpublished candidate.{% endunless %}
@@ -31,54 +31,72 @@ gem "openui-rails", "~> {{ site.version }}"
 ```
 {% endif %}
 
-Run `bundle update openui-rails`. No new migration or configuration is required.
-Keep your selected replay store, library files, authorization, and business
-constraints. For an older host, first read the
-[0.4 migration guide](https://github.com/yorzi/openui-rails/blob/v0.4.0/docs/_reference/upgrading.md).
+Run `bundle update openui-rails`. No new migration is required. Keep your
+selected replay store, library files, authorization, and business constraints.
+The pinned runtime and default library exports are unchanged, so stored
+surfaces keep their library fingerprint. For an older host, first read the
+[0.5 migration guide](https://github.com/yorzi/openui-rails/blob/v0.5.0/docs/_reference/upgrading.md).
 
-## Review diagnostics
+## Remove deprecated settings
 
-Server notifications are additive. Read
-[Diagnostics and Recovery]({% link _advanced/diagnostics-and-recovery.md %}) before
-subscribing. Use payload `duration_ms` for operation timing; the notification's
-own duration measures delivery. Default payloads exclude content and exceptions.
-Your optional `on_error` callback still receives a raw exception.
+```ruby
+OpenUI::Rails.configure do |config|
+  config.library_name = :chat        # remove: deprecated, no effect
+  config.surface_id_param = :id      # remove: deprecated, no effect
+end
+```
 
-Browser errors now always have a code, including `runtime_load_failed` and
-`network_error`. The bridge no longer logs raw error objects to the console.
-Subscribe to `openui:error` if you need host-controlled feedback or logging;
-its message may contain application data. Existing action and state events
-retain their payloads.
+Neither setting ever changed behavior. Using either one now reports a
+deprecation through `OpenUI::Rails.deprecator`. Your application's deprecation
+settings apply because the engine registers it in
+`Rails.application.deprecators`. Both settings are removed in 1.0.
 
-## Review recovery and lifecycle code
+## Review action error handling
 
-Use `openui:ready` for runtime and library readiness and
-`openui:snapshot-applied` to acknowledge an accepted snapshot. Neither promises
-that generated source has rendered successfully. Preserve visible fallback when
-a subsequent renderer error occurs. Rejecting a snapshot emits no success event.
+The endpoint used to return HTTP 422 with code `error` and an internal message
+for a server-side gem error. It now returns HTTP 500 with code `error` and the
+fixed message `action failed`, and writes the details to the server log. If
+your JavaScript branched on that 422 status or displayed the message, branch on
+the `error` code and show your own text. The handler may already have run, so
+treat the outcome as unknown. Request errors keep their codes and statuses.
 
-Disconnected renderer callbacks and action requests cannot report into a new
-connection. Your host must apply the same abort and stale-response guards to its
-own streams, state saves, and snapshot reads. Remove listeners before Turbo
-caches the page. The gem does not persist or authorize host snapshots.
+## Review stream producers
 
-The reference example adds ordinary HTML ticket information, native recovery
-controls, and a fresh sign-in. Its files belong to the host; review changes
-before copying them over custom application code. Do not rerun the base
-installer or replace a working library to adopt recovery UI.
+After a `stream_too_large` frame, `Bridge#envelopes`, `Broadcaster.broadcast`,
+and the RubyLLM adapter stop reading the provider. If you push chunks from a
+callback, stop your provider when `writer.terminated?` returns true. Later
+pushes are ignored either way.
 
-A failed request does not prove that a mutation did nothing. Reload canonical
-state or reconcile a receipt rather than automatically retrying an uncertain
-action. Keep explicit confirmation, tenant scope, and database constraints.
+The RubyLLM adapter stops generation by raising out of RubyLLM's streaming
+block. RubyLLM then adds no assistant message. If you persist chat history,
+treat that turn like any other failed stream.
+
+An exception from your `on_error` hook is now ignored, so the error frame is
+still sent. Report failures from inside the hook if you need them.
+
+## Review browser recovery
+
+A paused surface emits `openui:snapshot-required` again when it reconnects,
+including after a Turbo cache restoration. Keep your snapshot request
+single-flight and discard responses for a disconnected surface; you can receive
+the event more than once for one gap.
+
+A surface without a stored `library_version` now rejects frames whose
+`library_version` differs from the configured fingerprint, and reports
+`library_version_mismatch`. Producers that set `library_version` from
+`OpenUI::Rails.configuration.library_fingerprint` are unaffected.
+
+`OpenUI::Rails::RuntimeAsset` is now marked internal. Configure assets through
+the [configuration settings]({% link _getting_started/configuration.md %}).
 
 ## Plan a rollback
 
-Existing storage and schema stay compatible with 0.4. Review host listeners that
-expect the new ready or snapshot-applied events before downgrading; preserve
-ordinary HTML fallback if those events are absent. Do not drop shared-store or
-business tables as part of a browser-code rollback.
+Storage, schema, and library files stay compatible with 0.5. Rolling back
+restores the 422 response for server-side errors and the earlier stream and
+recovery defects. Do not drop shared-store or business tables as part of a
+rollback.
 
 ## Next Steps
 
-* [What's New]({% link _getting_started/whats-new-in-0-5.md %}) - review the release scope.
-* [Reference Workflow]({% link _getting_started/reference-workflow.md %}) - exercise recovery with a built gem.
+* [What's New]({% link _getting_started/whats-new-in-0-9.md %}) - review the release scope.
+* [Supported API]({% link _reference/supported-api.md %}) - review what 1.x keeps compatible.
