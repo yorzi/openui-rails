@@ -11,6 +11,9 @@ Version `0.4.0` was published on 2026-10-20; see
 Version `0.5.0` was published on 2026-10-21; see
 [its release record](RELEASE_0_5.md). Its
 [candidate validation record](VALIDATION_0_5.md) preserves the earlier local evidence.
+Version `0.9.0` is an unpublished stabilization candidate; its
+[candidate validation record](VALIDATION_0_9.md) lists the gates that passed
+locally and the gates that remain open.
 Milestones after 0.5 are proposals,
 not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
@@ -168,6 +171,12 @@ fallback and retry controls; verify accessible names and busy states. Check
 diagnostic payloads for sensitive values.
 
 ## 0.9.0: freeze and qualify the candidate
+
+The candidate is prepared, not published. The legacy settings are deprecated,
+the supported boundary is recorded in the site's Supported API page, and audit
+defects are fixed. [VALIDATION_0_9.md](VALIDATION_0_9.md) records the local
+evidence. Remote CI, the external host integration, the live-provider flow,
+and the 0.1.0 upgrade rehearsal remain open.
 
 Stop adding features. Resolve ambiguous public settings such as `library_name`
 and `surface_id_param` before freezing them. Record the supported Ruby methods,
