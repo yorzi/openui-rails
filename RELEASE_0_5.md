@@ -37,7 +37,7 @@ the tag or change the published gem.
 | Browser CI | 37 fixture-runtime tests and 131 assertions; 6 pinned real-runtime tests and 34 assertions; 14 built-gem reference tests and 144 assertions. All passed without failures, errors, or skips. |
 | Built-gem setup CI | Fresh host, optional shared migration, separate-process false replay, real rendering, CSRF action, and mobile layout passed. |
 | Public RubyGems download | Temporary isolated gem installation and require passed. A fresh host passed setup and real rendering. The reference browser suite passed 14 tests and 144 assertions without failures, errors, or skips. |
-| Dependencies and style | GitHub security and lint jobs passed. Local advisory refresh found no known vulnerabilities; RuboCop inspected 144 files without offenses. |
+| Dependencies and style | GitHub security and lint jobs passed. Local root and docs dependency audits found no known vulnerabilities after the advisory refresh; RuboCop inspected 144 files without offenses. |
 | Local release verification | Full `bin/check --runtime tmp/real-runtime --docs` passed on Ruby 3.3.5 and Rails 8.1.4. Post-tag stable 0.5 and next builds passed; 24 guides linted without errors or warnings; 2,128 guide links and anchors passed. |
 
 Recovery checks cover runtime load failure, library mismatch, provider failure,
@@ -70,7 +70,29 @@ silently omitted `Dispatcher#call` and the other methods after its `Struct`
 block. Local reproduction confirmed the omission; local RDoc 8.1.0 included
 them. The docs bundle now locks RDoc 8.1, the API builder uses that bundle, and
 a missing `Dispatcher#call` anchor fails the build. This changes documentation
-tooling, not the published gem. Final hosted API acceptance remains pending.
+tooling, not the published gem. The
+[RDoc deployment](https://github.com/yorzi/openui-rails/actions/runs/39520861049)
+and its [complete CI](https://github.com/yorzi/openui-rails/actions/runs/39520861038)
+passed for commit `5b79877`.
+
+All 15 final canonical HTTP checks returned 200 with the expected contents:
+
+- Stable Getting Started, Upgrading, What's New in 0.5, and Release History.
+- Diagnostics and Recovery, Shared Idempotency Storage, and Reference Workflow.
+- Generated Dispatcher and Stream::Bridge::Writer API pages, with the new notifications.
+- Next Getting Started, Upgrading, and Diagnostics and Recovery, following main.
+- Stable and next `llms.txt`, plus the sitemap and the new release's links.
+
+A browser reload confirmed `0.5.0 (stable)`, What's New in 0.5, and
+`bundle add openui-rails --version 0.5.0`. The API page also showed
+`Dispatcher#call`, its notification contract, and RDoc 8.1.0. The stable page's
+layout and the public-gem reference screenshots were inspected. Raw checks
+remain ignored under `tmp/evidence` and `tmp/browser`.
+
+The README, changelog, What's New, upgrade guide, release history, diagnostic
+guide, API, and roadmap reflect the delivered release. Candidate validation
+remains historical. Task-owned browser tabs and temporary services were stopped;
+no Ruby, Puma, or chromedriver listener remained after verification.
 
 ## Supported boundary and next step
 
