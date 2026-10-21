@@ -62,7 +62,7 @@ After you create the matching prompt and manifest, call `OpenUI::Rails.configura
 | `actor_resolver` | `current_user`, when available | Resolves the authenticated actor from the engine controller. |
 | `surface_resolver` | `nil` | Resolves a surface within the actor's authorized scope. |
 | `authorize_action` | `nil` | Global action authorizer. Missing authorization denies an action. |
-| `on_error` | `nil` | Server-side stream error hook. Avoid logging credentials or unredacted provider input. |
+| `on_error` | `nil` | Server-side stream error hook, called with the error and `message_id:`. An exception it raises is ignored so the error frame is still sent. Avoid logging credentials or unredacted provider input. |
 | `action_registry` | lazy `Actions::Registry` | Allowlisted action definitions. Per-action `authorize:` takes precedence over the global authorizer. |
 
 `library_name` and `surface_id_param` are legacy metadata settings. They do not choose the runtime library or change the action request's `surface_id` key.

@@ -79,6 +79,16 @@ module OpenUI
           assert_equal 3, pulled
         end
 
+        test "a failing on_error hook still produces the terminal error frame" do
+          @configuration.on_error = ->(_error, message_id:) { raise "logging backend down" }
+          source = Enumerator.new { |chunks| chunks << "a"; raise "provider failed" }
+
+          envelopes = bridge.envelopes(source).to_a
+
+          assert_equal "stream_failed", envelopes.last.code
+          assert_equal "stream failed (RuntimeError)", envelopes.last.data["message"]
+        end
+
         test "surfaces a source failure as a structured, sanitized error envelope" do
           seen = nil
           @configuration.on_error = ->(error, message_id:) { seen = [ error.class, message_id ] }

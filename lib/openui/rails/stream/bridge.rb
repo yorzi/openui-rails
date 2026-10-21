@@ -161,6 +161,7 @@ module OpenUI
           end
 
           # Structured, PII-free error envelope for a provider/consumer failure.
+          # Calls `on_error` first; an exception raised by that hook is ignored.
           #
           # @param error [Exception]
           #
@@ -170,7 +171,7 @@ module OpenUI
           def error_for(error, code: "stream_failed")
             return nil if @terminated
 
-            @on_error&.call(error, message_id: @message_id)
+            notify_error(error)
 
             message = "stream failed (#{error.class})"
             message = "stream cancelled" if code == "stream_cancelled"
@@ -199,6 +200,14 @@ module OpenUI
             @pending.clear
             notify_termination(code == "stream_cancelled" ? "cancelled" : "failed", code)
             envelope
+          end
+
+          # A failing host hook must not suppress the terminal frame or replace
+          # the provider error, matching notification subscriber isolation.
+          def notify_error(error)
+            @on_error&.call(error, message_id: @message_id)
+          rescue StandardError
+            nil
           end
 
           def notify_termination(outcome, code = nil)

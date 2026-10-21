@@ -21,6 +21,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A surface that reconnects while paused for a snapshot, including a Turbo
   cache restoration, emits `openui:snapshot-required` again. It previously
   dropped every later delta without telling the host.
+- An exception raised by the `on_error` hook no longer suppresses the stream's
+  error frame or replaces the provider error, which left the surface busy.
 
 ## [0.5.0] - 2026-10-21
 
