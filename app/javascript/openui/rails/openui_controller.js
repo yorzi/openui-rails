@@ -73,6 +73,12 @@ export default class extends Controller {
 
     this.syncBusy()
     this.renderRuntime(connection)
+    // A surface restored from the Turbo cache or reattached while paused for a
+    // snapshot would otherwise wait forever: the host abandoned the earlier
+    // request on disconnect. Announce it again once sibling controllers connect.
+    if (this.state.needsSnapshot) {
+      queueMicrotask(() => { if (this.isCurrent(connection)) this.announceSnapshotRequired() })
+    }
   }
 
   disconnect() {
@@ -215,6 +221,10 @@ export default class extends Controller {
   requestSnapshot() {
     if (this.state.needsSnapshot) return
     this.state.needsSnapshot = true
+    this.announceSnapshotRequired()
+  }
+
+  announceSnapshotRequired() {
     this.dispatch("snapshot-required", { surfaceId: this.surfaceId, sequence: this.state.nextSequence })
   }
 

@@ -77,7 +77,7 @@ messages as text rather than HTML.
 | `openui:action` | `surfaceId`, `result` | A matching successful action response, including its replay status. |
 | `openui:state` | `surfaceId`, `state` | Form state offered to the host for persistence. |
 | `openui:error` | `surfaceId`, `code`, `message` | Renderer, stream, runtime, or action failure. |
-| `openui:snapshot-required` | `surfaceId`, `sequence` | A gap paused deltas; sequence is the next expected watermark. |
+| `openui:snapshot-required` | `surfaceId`, `sequence` | A gap paused deltas; sequence is the next expected watermark. A paused surface emits it again when it reconnects, including after a Turbo cache restoration. |
 | `openui:snapshot-applied` | `surfaceId`, `sequence` | A snapshot passed library, sequence, and size checks; sequence is the accepted frame's watermark. |
 
 Ready and snapshot-applied events do not promise that React has painted or that

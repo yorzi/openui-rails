@@ -94,6 +94,25 @@ class OpenUIStreamSafetySystemTest < ApplicationSystemTestCase
     assert_equal "1", find("[data-openui-surface-id='surface-2']", visible: :all)["data-openui-next-sequence"]
   end
 
+  test "a surface restored from the Turbo cache while paused requests its snapshot again" do
+    dispatch(delta("surface-2", 0, "A"))
+    dispatch(delta("surface-2", 2, "gap"))
+    assert_equal 1, read_json("body", "data-openui-last-snapshot")["sequence"]
+    page.execute_script(<<~JS)
+      document.dispatchEvent(new Event("turbo:before-cache"))
+      const cached = document.querySelector("[data-openui-surface-id='surface-2']")
+      const restored = cached.cloneNode(true)
+      cached.remove()
+      delete document.body.dataset.openuiLastSnapshot
+      document.body.appendChild(restored)
+    JS
+
+    assert_selector "body[data-openui-last-snapshot]"
+    assert_equal({ "surfaceId" => "surface-2", "sequence" => 1 }, read_json("body", "data-openui-last-snapshot"))
+    dispatch({ "message_id" => "surface-2", "sequence" => 1, "type" => "openui.snapshot", "response" => "restored" })
+    within_surface("surface-2") { assert_selector "[data-openui-source]", text: "restored" }
+  end
+
   test "a missing runtime reports an error and clears the busy state" do
     page.execute_script(<<~JS)
       const clone = document.querySelector("[data-openui-surface-id='surface-2']").cloneNode(false)

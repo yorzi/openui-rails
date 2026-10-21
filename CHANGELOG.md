@@ -12,6 +12,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Bridge#envelopes`, `Broadcaster.broadcast`, and the RubyLLM adapter stop
   reading after the `stream_too_large` frame. `Writer#terminated?` lets
   callback-based providers do the same.
+- A surface that reconnects while paused for a snapshot, including a Turbo
+  cache restoration, emits `openui:snapshot-required` again. It previously
+  dropped every later delta without telling the host.
 
 ## [0.5.0] - 2026-10-21
 
