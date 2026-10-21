@@ -20,8 +20,12 @@ module OpenUI
           @needs_snapshot = false
         end
 
-        # @return [Symbol] one of :applied, :duplicate, :snapshot, :completed,
-        #   :error, :ignored
+        # Apply one envelope for this message.
+        #
+        # @param envelope [Envelope]
+        #
+        # @return [Symbol] one of :applied, :duplicate, :gap, :snapshot,
+        #   :completed, :error, :ignored. After :gap, only a snapshot applies.
         def apply(envelope)
           return :ignored unless envelope.message_id == message_id
           unless envelope.snapshot?

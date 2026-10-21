@@ -11,7 +11,7 @@ description: RDoc reference for the public OpenUI Rails classes and methods.
 {{ page.description }}
 {: .fs-6 .fw-300 }
 
-The [generated API reference]({{ '/api/' | relative_url }}) opens on the `OpenUI` module. It is generated from the source comments.
+The [generated API reference]({{ '/api/' | relative_url }}) opens on the `OpenUI` module. It is generated from the source comments. [Supported API]({% link _reference/supported-api.md %}) lists which of these classes and methods the 1.0 compatibility commitment covers.
 
 | If you need to... | Start with |
 | --- | --- |

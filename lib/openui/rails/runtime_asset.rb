@@ -2,14 +2,15 @@
 
 module OpenUI
   module Rails
-    # Resolves the pinned OpenUI browser runtime and the integrity metadata the
-    # mount element advertises.
+    # Internal: resolves the pinned OpenUI browser runtime and the integrity
+    # metadata the mount element advertises. Configure assets through
+    # {Configuration}; this module is not part of the supported API.
     #
     # The runtime is version-pinned. Self-hosted (the default) points at a file
     # the install generator vendored into the host app; the external strategy
     # requires an explicit, exact-version URL so no floating CDN range is used
     # in production.
-    module RuntimeAsset
+    module RuntimeAsset # :nodoc:
       PINNED_VERSION = "0.2.1"
       FILE_PREFIX = "openui-browser-bundle"
 
