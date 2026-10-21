@@ -12,7 +12,7 @@ description: Adopt outcome notifications and explicit recovery while preserving 
 
 After reading this guide, you will know:
 
-* How to test the 0.5 development branch.
+* How to upgrade your application to 0.5.0.
 * Which notification and browser behavior changes need review.
 * How to retain host-owned recovery and business safeguards.
 
@@ -80,5 +80,5 @@ business tables as part of a browser-code rollback.
 
 ## Next Steps
 
-* [What's New]({% link _getting_started/whats-new-in-0-5.md %}) - review the candidate scope.
+* [What's New]({% link _getting_started/whats-new-in-0-5.md %}) - review the release scope.
 * [Reference Workflow]({% link _getting_started/reference-workflow.md %}) - exercise recovery with a built gem.

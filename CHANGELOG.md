@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-21
+
 ### Added
 
 - Content-free `action.openui_rails` and `stream.openui_rails` notifications with
@@ -151,7 +153,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Gem-scoped RubyGems Trusted Publishing through GitHub OIDC, with a protected
   release environment and verified artifact handoff.
 
-[Unreleased]: https://github.com/yorzi/openui-rails/compare/v0.4.0...main
+[Unreleased]: https://github.com/yorzi/openui-rails/compare/v0.5.0...main
+[0.5.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.5.0
 [0.4.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.4.0
 [0.3.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.3.0
 [0.2.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.2.0
