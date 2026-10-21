@@ -11,9 +11,9 @@ Version `0.4.0` was published on 2026-10-20; see
 Version `0.5.0` was published on 2026-10-21; see
 [its release record](RELEASE_0_5.md). Its
 [candidate validation record](VALIDATION_0_5.md) preserves the earlier local evidence.
-Version `0.9.0` is an unpublished stabilization candidate; its
-[candidate validation record](VALIDATION_0_9.md) lists the gates that passed
-locally and the gates that remain open.
+Version `0.9.0` was published on 2026-10-21; see
+[its release record](RELEASE_0_9.md). Its
+[candidate validation record](VALIDATION_0_9.md) preserves the audit and local evidence.
 Milestones after 0.5 are proposals,
 not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
@@ -172,11 +172,13 @@ diagnostic payloads for sensitive values.
 
 ## 0.9.0: freeze and qualify the candidate
 
-The candidate is prepared, not published. The legacy settings are deprecated,
-the supported boundary is recorded in the site's Supported API page, and audit
-defects are fixed. [VALIDATION_0_9.md](VALIDATION_0_9.md) records the local
-evidence. Remote CI, the external host integration, the live-provider flow,
-and the 0.1.0 upgrade rehearsal remain open.
+Version 0.9.0 is published; see [RELEASE_0_9.md](RELEASE_0_9.md). The legacy
+settings are deprecated, the supported boundary is recorded in the site's
+Supported API page, and audit defects are fixed. The full Ruby/Rails CI matrix,
+dependency checks, real-runtime tests, built-artifact workflow, and release
+checks passed for the tagged commit. The external host integration, the
+live-provider flow, the 0.1.0 upgrade rehearsal, and the notices, CSP, and
+accessibility review remain open for 0.9.x.
 
 Stop adding features. Resolve ambiguous public settings such as `library_name`
 and `surface_id_param` before freezing them. Record the supported Ruby methods,
