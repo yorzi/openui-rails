@@ -23,6 +23,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   dropped every later delta without telling the host.
 - An exception raised by the `on_error` hook no longer suppresses the stream's
   error frame or replaces the provider error, which left the surface busy.
+- A surface without a stored `library_version` now checks stream frames against
+  the configured library fingerprint instead of accepting any library.
 
 ## [0.5.0] - 2026-10-21
 

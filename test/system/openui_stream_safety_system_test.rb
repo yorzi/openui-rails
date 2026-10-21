@@ -37,6 +37,26 @@ class OpenUIStreamSafetySystemTest < ApplicationSystemTestCase
     assert_equal before, source_of("surface-2")
   end
 
+  test "a surface without a stored library version rejects frames for another library" do
+    page.execute_script(<<~JS)
+      const clone = document.querySelector("[data-openui-surface-id='surface-2']").cloneNode(false)
+      clone.id = "unversioned"
+      clone.dataset.openuiSurfaceId = "unversioned"
+      clone.dataset.openuiMessageId = "unversioned"
+      delete clone.dataset.openuiLibraryVersion
+      document.body.appendChild(clone)
+    JS
+    within_surface("unversioned") { assert_selector "[data-openui-rendered]" }
+    before = source_of("unversioned")
+    dispatch(delta("unversioned", 0, "wrong").merge("library_version" => "sha256:other"))
+
+    assert_selector "body[data-openui-last-error]"
+    assert_equal "library_version_mismatch", read_json("body", "data-openui-last-error")["code"]
+    assert_equal before, source_of("unversioned")
+    dispatch(delta("unversioned", 0, "-ok").merge("library_version" => find("#unversioned")["data-openui-library-fingerprint"]))
+    within_surface("unversioned") { assert_selector "[data-openui-source]", text: /-ok\z/ }
+  end
+
   test "disconnect and reconnect preserve the source and duplicate watermark" do
     dispatch(delta("surface-2", 0, "A"))
     before = source_of("surface-2")

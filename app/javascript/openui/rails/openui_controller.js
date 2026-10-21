@@ -165,7 +165,10 @@ export default class extends Controller {
         (envelope.type === "openui.snapshot" && typeof envelope.response !== "string")) {
       return this.handleError(Object.assign(new Error("Malformed stream envelope"), { code: "invalid_envelope" }))
     }
-    if (envelope.library_version && this.libraryVersion && envelope.library_version !== this.libraryVersion) {
+    // Without a stored library version, the verified runtime fingerprint is
+    // still the only library this mount can render.
+    const library = this.libraryVersion || this.element.dataset.openuiLibraryFingerprint
+    if (envelope.library_version && library && envelope.library_version !== library) {
       return this.handleError(Object.assign(new Error("OpenUI library version mismatch"), { code: "library_version_mismatch" }))
     }
     if (envelope.type !== "openui.snapshot") {

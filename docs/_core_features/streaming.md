@@ -48,6 +48,8 @@ For callback-based providers, create a writer and publish the envelopes returned
 | `openui.completed` | Mark the stream complete and clear the busy state. |
 | `openui.error` | Stop the stream with a structured error code. |
 
+The browser rejects a frame whose `library_version` differs from the surface's stored library version or, when the surface has none, from the configured library fingerprint. It reports `library_version_mismatch`.
+
 The bridge orders its own frames but cannot guarantee that Action Cable or Turbo delivers them in order or at all. The browser ignores duplicates and pauses deltas after a sequence gap. It then emits `openui:snapshot-required`.
 
 ## Implement snapshot recovery in the host
