@@ -14,9 +14,11 @@ Version `0.5.0` was published on 2026-10-21; see
 Version `0.9.0` was published on 2026-10-21; see
 [its release record](RELEASE_0_9.md). Its
 [candidate validation record](VALIDATION_0_9.md) preserves the audit and local evidence.
-Version `0.9.1` is an unpublished stabilization follow-up for demo and host
-qualification. See [QUALIFICATION_1_0.md](QUALIFICATION_1_0.md) for current
-evidence and the remaining release conditions. Milestones after 0.9 are proposals,
+Version `0.9.1` was published on 2026-10-28; see
+[its release record](RELEASE_0_9_1.md). The earlier
+[qualification baseline](QUALIFICATION_1_0.md) preserves the local demo, live,
+and upgrade evidence. Final 1.0 release conditions still apply.
+Milestones after 0.9 are proposals,
 not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
 
@@ -182,7 +184,7 @@ checks passed for the tagged commit. The 2026-10-28 qualification closes the
 local maintainer-host integration, one bounded live-provider flow, and the
 0.1.0 upgrade/rollback rehearsal. It reviews the exact runtime notices, enforced
 script CSP, and keyboard/mobile limits. This is maintainer evidence, not
-independent adoption or full assistive-technology certification. Final candidate
+independent adoption or full assistive-technology certification. Final 1.0 candidate
 CI and publication acceptance remain separate gates.
 
 Stop adding features. Resolve ambiguous public settings such as `library_name`

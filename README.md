@@ -75,7 +75,7 @@ The site's stable channel follows the latest release; [/next/](https://openui-ra
 follows `main`.
 
 For repository work, use [Contributing](CONTRIBUTING.md),
-[Releasing](RELEASING.md), and the [0.9.0 release record](RELEASE_0_9.md).
+[Releasing](RELEASING.md), and the [0.9.1 release record](RELEASE_0_9_1.md).
 Run the disposable demo with `bin/demo --runtime tmp/real-runtime` after the
 runtime setup in [Development](DEVELOPMENT.md).
 Report vulnerabilities through the [security policy](SECURITY.md).
