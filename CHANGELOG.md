@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-28
+
 ### Added
 
 - `bin/demo` prepares a disposable Support Desk host, binds its foreground
@@ -204,7 +206,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Gem-scoped RubyGems Trusted Publishing through GitHub OIDC, with a protected
   release environment and verified artifact handoff.
 
-[Unreleased]: https://github.com/yorzi/openui-rails/compare/v0.9.0...main
+[Unreleased]: https://github.com/yorzi/openui-rails/compare/v0.9.1...main
+[0.9.1]: https://github.com/yorzi/openui-rails/releases/tag/v0.9.1
 [0.9.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.9.0
 [0.5.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.5.0
 [0.4.0]: https://github.com/yorzi/openui-rails/releases/tag/v0.4.0

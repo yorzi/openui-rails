@@ -23,7 +23,7 @@ opt-in Support Desk example adds an enforced script CSP and nonce generation.
 Review that host example's policy before copying it into an application with
 an existing CSP. The base installer and public gem API stay unchanged.
 
-The maintainer rehearsal verifies 0.1.0 to the candidate and back against one
+The maintainer rehearsal verifies 0.1.0 to this release and back against one
 database. A rollback host must accept both the empty continuation arguments
 sent by 0.1 and the validated metadata sent by 0.3 and later. Keep saved library
 fingerprints and canonical records; show HTML fallback for a mismatched library

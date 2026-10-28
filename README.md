@@ -32,7 +32,7 @@ The runtime-fetch task also needs npm. RubyLLM is optional.
 
 ```ruby
 # Gemfile
-gem "openui-rails", "~> 0.9.0"
+gem "openui-rails", "~> 0.9.1"
 ```
 
 ```sh
@@ -65,7 +65,8 @@ The documentation site contains the full guides and API reference:
 - [RubyLLM](https://openui-rails.wangyaodi.com/ruby-llm/) and [production setup](https://openui-rails.wangyaodi.com/production/)
 - [Upgrading](https://openui-rails.wangyaodi.com/upgrading/) and [API reference](https://openui-rails.wangyaodi.com/api-reference/)
 
-Version `0.9.0` freezes the candidate API for 1.0 and fixes stream and recovery defects.
+Version `0.9.1` improves the demo, CSP, keyboard checks, and host qualification
+without changing the public gem API or pinned runtime.
 See [What's New](https://openui-rails.wangyaodi.com/whats-new-in-0-9/) for the upgrade and
 [Supported API](https://openui-rails.wangyaodi.com/supported-api/) for the compatibility boundary.
 The API may change during `0.x`; see the

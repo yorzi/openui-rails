@@ -32,6 +32,12 @@ The live smoke completed on 2026-10-18 through OpenRouter with RubyLLM 2.1.1
 and `openai/gpt-4.1-mini`. It used a synthetic prompt, `:complete` streaming,
 and a 16-token output cap. See [AUDIT.md](AUDIT.md) for the result and limits.
 
+The fuller, explicitly authorized qualification on 2026-10-28 generated complete
+UI through RubyLLM, rendered its persisted output, and executed an authorized
+action in an independent host. See [QUALIFICATION_1_0.md](QUALIFICATION_1_0.md)
+for its budget, upgrade rehearsal, and limits. Release CI remains provider-free;
+publishing does not require repeating a paid call.
+
 ## Prepare the candidate
 
 During development, keep `released: false`, document delivered work under
