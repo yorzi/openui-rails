@@ -60,8 +60,29 @@ The [release-triggered deployment](https://github.com/yorzi/openui-rails/actions
 completed successfully. Actual HTTP checks and a fresh browser still showed
 stable 0.9.0 and its installation command. Next already served the new demo
 guide. This does not satisfy hosted acceptance. The README, roadmap, and
-publication record update triggers a fresh deployment; final hosted checks
-remain pending.
+publication record update in `675d9c5` triggered a
+[fresh deployment](https://github.com/yorzi/openui-rails/actions/runs/40649596368).
+That deployment and the update's
+[complete CI](https://github.com/yorzi/openui-rails/actions/runs/40649596314)
+passed. The subsequent browser reload shows `0.9.1 (stable)` and
+`bundle add openui-rails --version 0.9.1`. These checks cannot establish whether
+the first deployment would have propagated without the follow-up.
+
+All 17 final canonical HTTP checks returned 200 with the expected contents:
+
+- Stable Getting Started, Upgrading, What's New in 0.9, and Release History.
+- Supported API, Diagnostics and Recovery, Production Considerations, and
+  Reference Workflow, including the new demo, CSP, and preparation instructions.
+- Generated Dispatcher and Stream::Bridge::Writer API methods and notifications.
+- Next Getting Started, Upgrading, Reference Workflow, and Supported API.
+- Stable and next `llms.txt`, plus the sitemap.
+
+The browser also confirmed the online disposable-demo command and
+`--prepare-only` instructions, and the installation page's layout was inspected.
+The README, dated changelog, upgrading notes, release history, guides, and
+roadmap reflect the delivered release. Raw optional local evidence remains in
+ignored `drafts/release-0.9.1/`; screenshots remain under `tmp/browser/`.
+Task-owned temporary services and browser tabs were stopped after verification.
 
 ## Supported boundary and next step
 
