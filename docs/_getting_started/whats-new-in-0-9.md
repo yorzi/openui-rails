@@ -21,6 +21,12 @@ The stable site stays on the latest published release.{% endunless %}
 
 ## Know the supported boundary
 
+The stabilization follow-up adds a disposable demo command and stronger host,
+upgrade, CSP, and keyboard checks. It keeps the same gem API and runtime pin.
+See [Reference Workflow]({% link _getting_started/reference-workflow.md %}) for
+the checkout-only demo and
+[Production Considerations]({% link _advanced/production.md %}) for the tested policy.
+
 Version 0.9 adds no features. It names the classes, settings, events, and wire
 formats that 1.x keeps compatible, and the policy for changing the pinned
 runtime. Read [Supported API]({% link _reference/supported-api.md %}) before you

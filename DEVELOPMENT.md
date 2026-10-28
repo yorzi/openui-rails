@@ -1,5 +1,8 @@
 # Development and verification
 
+Select a Ruby version covered by the CI matrix before running `bundle install`.
+The qualification commands reuse that Ruby and its resolved Rails dependencies.
+
 Use `test/dummy` as the maintained local host. Temporary generated hosts verify
 the built gem. Keep examples synthetic and provider-free unless a task explicitly
 authorizes a live call. Follow this loop for each feature:
@@ -13,6 +16,19 @@ authorizes a live call. Follow this loop for each feature:
    task-owned service before finishing.
 
 ## Reference workflow
+
+For an interactive, provider-free demo:
+
+```sh
+bundle exec rake "app:openui:runtime:fetch[$PWD/tmp/real-runtime]"
+bin/demo --runtime tmp/real-runtime --port 3000
+```
+
+Open `http://127.0.0.1:3000/support`. The server runs in the foreground and binds
+loopback only. Ctrl-C stops it and removes the newly generated host and database.
+No browser suite or provider runs during startup. Use `bin/check-reference`
+for automated browser verification. Add `--prepare-only` with `--gem --host`
+when you want a retained review host without running the browser suite.
 
 ```sh
 bin/check-reference
@@ -59,6 +75,45 @@ their browser sessions and remove the temporary database on exit. This is not
 a browser network sandbox. The stub suite exercises bridge failure cases; the
 real-runtime suite verifies the pinned renderer, library identity, actions,
 tools, and keyboard behavior. Neither proves live-provider compatibility.
+
+## Independent host and release qualification
+
+The independent host uses public gem APIs and its own SQLite record, view,
+authorization, and action. It loads no Support Desk or dummy application code.
+The default path runs in `bin/check --runtime` and CI. To rehearse an upgrade,
+provide a checksum-verified historical gem explicitly:
+
+```sh
+bin/check-host --gem tmp/package/openui-rails-0.9.1.gem --runtime tmp/real-runtime
+bin/check-host --gem tmp/package/openui-rails-0.9.1.gem --runtime tmp/real-runtime \
+  --upgrade-from tmp/qualification/openui-rails-0.1.0.gem
+```
+
+The optional rehearsal boots the old artifact, the candidate, and the old
+artifact again against the same database. It checks saved source, a draft,
+authorized effects, reload, library mismatch fallback, and rollback. Its
+synthetic fixed actor is a test boundary, not production authentication.
+
+Live qualification always requires explicit owner authorization and uses
+`OPENROUTER_API_KEY` from the existing environment. Never put a credential in
+a command argument. After authorization:
+
+The `drafts/` paths below are local, optional materials. The gem, `bin/check`,
+and CI do not depend on them and never commit them.
+
+```sh
+bin/check-live --authorized --output drafts/live-qualification
+bin/check-host --gem tmp/package/openui-rails-0.9.1.gem --runtime tmp/real-runtime \
+  --source drafts/live-qualification/source.openui
+```
+
+The live command uses one `openai/gpt-4.1-mini` request, a 1024-output-token
+limit, and a conservative US$0.25 token-cost preflight. SDK retries and provider
+fallbacks are disabled. An existing output directory is refused, including a
+failed attempt; do not automatically repeat it. Usage-based cost estimates do
+not prove the billed charge. Generated output becomes browser evidence only
+after `bin/check-host --source` passes. CI tests this command with mocked HTTP;
+it never reads a live key or calls a paid provider.
 
 ## Refresh the default library exports
 

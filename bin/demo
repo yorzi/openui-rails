@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Disposable, loopback-only demo. No provider requests or persistent background service.
+require "bundler/setup"
+require "tmpdir"
+require "fileutils"
+require "optparse"
+require "rbconfig"
+
+options = { port: 3000 }
+OptionParser.new do |parser|
+  parser.banner = "Usage: bin/demo --runtime DIRECTORY [--port PORT]"
+  parser.on("--runtime DIRECTORY", "Use an already fetched, checksum-verified runtime") { |value| options[:runtime] = File.expand_path(value) }
+  parser.on("--port PORT", Integer, "Loopback port (default 3000)") { |value| options[:port] = value }
+end.parse!
+abort "Provide --runtime; fetch assets explicitly before starting the demo" unless options[:runtime]
+abort "Invalid arguments or port" unless ARGV.empty? && options[:port].between?(1, 65_535)
+root = File.expand_path("..", __dir__)
+FileUtils.mkdir_p(File.join(root, "tmp"))
+$stdout.sync = true
+
+Dir.mktmpdir("openui-demo-", File.join(root, "tmp")) do |temporary|
+  archive = File.join(temporary, "openui-rails.gem")
+  abort "Gem build failed" unless system("bundle", "exec", "gem", "build", "openui-rails.gemspec", "--output", archive, chdir: root)
+  host = File.join(temporary, "host")
+  abort "Demo setup failed" unless system(RbConfig.ruby, File.join(root, "bin/check-reference"),
+    "--gem", archive, "--runtime", options[:runtime], "--host", host, "--prepare-only", chdir: root)
+
+  puts "Demo: http://127.0.0.1:#{options[:port]}/support"
+  puts "Synthetic accounts only. Ctrl-C stops the server and removes this temporary host."
+  environment = { "BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "RAILS_ENV" => "test",
+    "DATABASE_URL" => "sqlite3:#{host}/storage/reference-test.sqlite3" }
+  Bundler.with_unbundled_env do
+    pid = Process.spawn(environment, "bundle", "exec", "ruby", "bin/rails", "server",
+      "--binding", "127.0.0.1", "--port", options[:port].to_s, chdir: host, pgroup: true)
+    previous = %w[INT TERM].to_h do |signal|
+      [ signal, Signal.trap(signal) do
+        Process.kill("TERM", -pid)
+      rescue Errno::ESRCH
+        # The foreground server has already exited.
+      end ]
+    end
+    begin
+      _, status = Process.wait2(pid)
+      abort "Demo server failed" unless status.success? || status.signaled?
+    ensure
+      previous.each { |signal, handler| Signal.trap(signal, handler) }
+      begin
+        Process.kill("TERM", -pid)
+      rescue Errno::ESRCH
+        # The foreground server has already exited.
+      end
+      begin
+        Process.wait(pid)
+      rescue Errno::ECHILD
+        # Already reaped above.
+      end
+    end
+  end
+end

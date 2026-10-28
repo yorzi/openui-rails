@@ -89,7 +89,9 @@ jobs:
         run: bin/check-reference
 
       - name: Verify RubyLLM 2.1.1 against deterministic provider SSE
-        run: bundle exec ruby -Itest test/compatibility/ruby_llm_smoke.rb
+        run: |
+          bundle exec ruby -Itest test/compatibility/ruby_llm_smoke.rb
+          bundle exec ruby test/qualification/live_smoke.rb
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -134,6 +136,7 @@ jobs:
           bundle exec gem build openui-rails.gemspec --output "$RUNNER_TEMP/openui-rails.gem"
           bundle exec ruby bin/smoke-package "$RUNNER_TEMP/openui-rails.gem" --runtime "$RUNNER_TEMP/openui-runtime"
           bin/check-reference --gem "$RUNNER_TEMP/openui-rails.gem" --runtime "$RUNNER_TEMP/openui-runtime"
+          bin/check-host --gem "$RUNNER_TEMP/openui-rails.gem" --runtime "$RUNNER_TEMP/openui-runtime"
 
       - name: Keep fixture browser screenshots
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

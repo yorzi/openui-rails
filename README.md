@@ -75,6 +75,8 @@ follows `main`.
 
 For repository work, use [Contributing](CONTRIBUTING.md),
 [Releasing](RELEASING.md), and the [0.9.0 release record](RELEASE_0_9.md).
+Run the disposable demo with `bin/demo --runtime tmp/real-runtime` after the
+runtime setup in [Development](DEVELOPMENT.md).
 Report vulnerabilities through the [security policy](SECURITY.md).
 
 ## License

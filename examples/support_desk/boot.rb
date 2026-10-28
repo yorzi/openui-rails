@@ -11,6 +11,8 @@ module SupportDesk # :nodoc:
     # form tags and the shared action endpoint protected in that environment too.
     initializer "support_desk.csrf", before: "action_controller.set_configs" do |app|
       app.config.action_controller.allow_forgery_protection = true
+      app.config.content_security_policy_nonce_generator ||= ->(_request) { SecureRandom.base64(16) }
+      app.config.content_security_policy_nonce_directives ||= %w[script-src]
     end
 
     initializer "support_desk.assets", before: "importmap" do |app|

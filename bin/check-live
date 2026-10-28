@@ -1,0 +1,73 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Explicitly authorized, single-request qualification. Never run by bin/check or CI.
+require "bundler/setup"
+require "ruby_llm"
+require "openui/rails"
+require "json"
+require "net/http"
+require "fileutils"
+require "optparse"
+require "time"
+require "logger"
+
+options = {}
+OptionParser.new do |parser|
+  parser.banner = "Usage: bin/check-live --authorized --output NEW_DIRECTORY"
+  parser.on("--authorized", "Confirm owner authorization for one request and a US$0.25 budget") { options[:authorized] = true }
+  parser.on("--output DIRECTORY", "New ignored directory for synthetic output and bounded metadata") { |value| options[:output] = File.expand_path(value) }
+end.parse!
+abort "Explicit authorization and a new --output directory are required" unless options[:authorized] && options[:output] && ARGV.empty?
+abort "Output directory already exists; do not automatically retry a live generation" if File.exist?(options[:output])
+abort "OPENROUTER_API_KEY is not configured" if ENV["OPENROUTER_API_KEY"].to_s.empty?
+model_id = "openai/gpt-4.1-mini"
+configuration = OpenUI::Rails.configuration
+configuration.library_spec_path = File.expand_path("../lib/openui/rails/default_library/library.spec.json", __dir__)
+configuration.prompt_path = File.expand_path("../lib/openui/rails/default_library/library.prompt.txt", __dir__)
+configuration.pending_byte_limit = 64
+configuration.stream_byte_limit = 32_768
+instruction = OpenUI::Rails::PromptBuilder.load.system_instruction
+question = 'Create an OpenUI Lang Card with TextContent titled "Release readiness" and exactly one button labeled "Confirm setup" using @ToAssistant("confirm"). Use only built-in components. Return complete executable OpenUI Lang source, with root assigned. No Markdown fences, no tools, URLs, or explanation.'
+models = JSON.parse(Net::HTTP.get(URI("https://openrouter.ai/api/v1/models"))).fetch("data")
+model = models.find { |entry| entry["id"] == model_id }
+abort "Authorized model is unavailable" unless model
+pricing = model.fetch("pricing")
+# Bytes plus framing are a conservative token bound for this text-only request.
+bound = (instruction.bytesize + question.bytesize + 4096) * Float(pricing.fetch("prompt")) + 1024 * Float(pricing.fetch("completion"))
+abort "Current token pricing exceeds the US$0.25 budget" unless bound.finite? && bound.between?(0, 0.25)
+RubyLLM.configure do |config|
+  config.openrouter_api_key = ENV.fetch("OPENROUTER_API_KEY")
+  config.max_retries = 0
+  config.request_timeout = 60
+  config.logger = Logger.new(File::NULL)
+end
+FileUtils.mkdir_p(options[:output], mode: 0o700)
+File.write(File.join(options[:output], "attempt.json"), JSON.pretty_generate(model: model_id, max_requests: 1,
+  max_output_tokens: 1024, conservative_token_cost_bound_usd: bound, started_at: Time.now.utc.iso8601))
+begin
+  chat = RubyLLM.chat(model: model_id, provider: :openrouter, protocol: :chat_completions, assume_model_exists: true)
+    .with_max_output_tokens(1024).with_temperature(0)
+    .with_provider_options(provider: { allow_fallbacks: false })
+  frames = []
+  OpenUI::Rails::Adapters::RubyLLM.stream(chat: chat, question: question, surface_id: "qualification",
+    configuration: configuration) { |frame| frames << frame }
+  abort "Provider did not produce a complete response; no automatic retry" unless frames.last&.completed?
+  source = frames.select(&:delta?).map(&:delta).join
+  abort "Empty or fenced model output; no automatic retry" if source.empty? || source.include?("```")
+  File.write(File.join(options[:output], "source.openui"), source)
+  File.write(File.join(options[:output], "frames.json"), JSON.pretty_generate(frames.map(&:to_h)))
+  message = chat.messages.reverse.find { |entry| entry.role == :assistant }
+  usage = message&.tokens&.to_h
+  estimated_cost = if usage && usage[:input_tokens] && usage[:output_tokens]
+    usage[:input_tokens] * Float(pricing.fetch("prompt")) + usage[:output_tokens] * Float(pricing.fetch("completion"))
+  end
+  report = { model: model_id, ruby_llm: Gem.loaded_specs.fetch("ruby_llm").version.to_s,
+    frames: frames.size, bytes: source.bytesize, completed: true, finish_reason: message&.finish_reason,
+    usage: usage, estimated_token_cost_usd: estimated_cost, billed_cost_verified: false, browser_verified: false }
+  File.write(File.join(options[:output], "report.json"), JSON.pretty_generate(report))
+  puts "One live generation completed: #{frames.size} frames, #{source.bytesize} bytes."
+  puts "Output: #{options[:output]}. Run bin/check-host --source with the generated source before claiming browser success."
+rescue StandardError => error
+  abort "Live qualification failed (#{error.class}); no retry or raw provider error is printed."
+end

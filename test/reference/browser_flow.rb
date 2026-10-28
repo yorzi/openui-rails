@@ -91,6 +91,54 @@ class ReferenceWorkflowTest < Minitest::Test
     save_screenshot(File.join(Capybara.save_path, "reference-mobile.png"))
   end
 
+  def test_nonce_csp_renders_and_acts_without_allowing_untrusted_inline_scripts
+    visit "/support"
+    # The policy is checked separately from rendering so a missing header cannot pass.
+    response = page.driver.browser.execute_async_script(<<~JS)
+      const done = arguments[arguments.length - 1]
+      fetch('/support').then(r => done({status: r.status, policy: r.headers.get('Content-Security-Policy')}))
+    JS
+    policy = response["policy"]
+    assert policy, "reference host must send an enforced CSP"
+    assert_includes policy, "script-src 'self' 'nonce-"
+    refute_includes policy.split(";").find { |part| part.strip.start_with?("script-src ") }, "unsafe-"
+    assert_equal 200, response["status"]
+    save_screenshot(File.join(Capybara.save_path, "reference-start.png"))
+    page.execute_script(<<~JS)
+      window.inlineScriptRan = false
+      const script = document.createElement('script')
+      script.textContent = 'window.inlineScriptRan = true'
+      document.head.appendChild(script)
+    JS
+    assert_equal false, page.evaluate_script("window.inlineScriptRan")
+    click_button "Sign in as Alice"
+    assert_button "Close ticket"
+    find_button("Close ticket").send_keys(:enter)
+    assert_text "Ticket is closed"
+    assert_equal 1, SupportDesk::Receipt.count
+  end
+
+  def test_keyboard_navigation_reaches_the_generated_form_and_action
+    sign_in
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: true)
+    page.refresh
+    assert_selector "[data-controller='openui'][aria-busy='false']"
+    find_link("Conversations").send_keys(:tab)
+    reached = []
+    20.times do
+      active = page.evaluate_script("({tag: document.activeElement.tagName, text: document.activeElement.textContent, name: document.activeElement.getAttribute('name')})")
+      reached << (active["name"] || active["text"].to_s.strip)
+      break if active["text"].to_s.strip == "Close ticket"
+      page.driver.browser.switch_to.active_element.send_keys(:tab)
+    end
+    assert_includes reached, "note"
+    assert_includes reached, "Continue conversation"
+    assert_includes reached, "Close ticket"
+    page.driver.browser.switch_to.active_element.send_keys(:enter)
+    assert_text "Ticket is closed"
+    assert page.evaluate_script("document.documentElement.scrollWidth <= window.innerWidth")
+  end
+
   def test_a_lost_turbo_envelope_recovers_from_the_scoped_snapshot
     visit "/support"
     page.execute_script(<<~JS)

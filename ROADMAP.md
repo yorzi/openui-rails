@@ -14,7 +14,9 @@ Version `0.5.0` was published on 2026-10-21; see
 Version `0.9.0` was published on 2026-10-21; see
 [its release record](RELEASE_0_9.md). Its
 [candidate validation record](VALIDATION_0_9.md) preserves the audit and local evidence.
-Milestones after 0.5 are proposals,
+Version `0.9.1` is an unpublished stabilization follow-up for demo and host
+qualification. See [QUALIFICATION_1_0.md](QUALIFICATION_1_0.md) for current
+evidence and the remaining release conditions. Milestones after 0.9 are proposals,
 not supported APIs or release dates. Work through one milestone at a time;
 use patch releases for fixes and revise later scope from integration feedback.
 
@@ -49,7 +51,7 @@ work is released; the 0.3 reference flow exercises the built gem. The published
 | A fresh install is not tested as a complete browser workflow. | `bin/smoke-package` boots a generated host and checks mount HTML; real-runtime interaction tests use `test/dummy`. | 0.3 |
 | Multi-process replay storage is left to each host. | Version 0.4 adds an optional SQLite-backed `ActiveRecordStore`; memory stays the default. | 0.4 |
 | Failure handling requires application-specific glue. | Version 0.5 adds bounded outcome notifications, a recovery guide, and host-owned HTML fallback, verified through complete remote CI and the public gem. | 0.5 |
-| Live generation of usable UI has limited evidence. | The audit's live probe produced a 2-byte delta, not a complete generated UI and action round trip. | 0.9 |
+| Live generation of usable UI has limited evidence. | On 2026-10-28 one authorized model request produced complete UI; the independent public-API host rendered it and persisted an authorized action. This is one model/provider, not universal compatibility. | 0.9 |
 
 These are code and integration findings, not evidence of market demand.
 
@@ -176,9 +178,12 @@ Version 0.9.0 is published; see [RELEASE_0_9.md](RELEASE_0_9.md). The legacy
 settings are deprecated, the supported boundary is recorded in the site's
 Supported API page, and audit defects are fixed. The full Ruby/Rails CI matrix,
 dependency checks, real-runtime tests, built-artifact workflow, and release
-checks passed for the tagged commit. The external host integration, the
-live-provider flow, the 0.1.0 upgrade rehearsal, and the notices, CSP, and
-accessibility review remain open for 0.9.x.
+checks passed for the tagged commit. The 2026-10-28 qualification closes the
+local maintainer-host integration, one bounded live-provider flow, and the
+0.1.0 upgrade/rollback rehearsal. It reviews the exact runtime notices, enforced
+script CSP, and keyboard/mobile limits. This is maintainer evidence, not
+independent adoption or full assistive-technology certification. Final candidate
+CI and publication acceptance remain separate gates.
 
 Stop adding features. Resolve ambiguous public settings such as `library_name`
 and `surface_id_param` before freezing them. Record the supported Ruby methods,

@@ -2,7 +2,7 @@
 layout: default
 title: Upgrading
 nav_order: 2
-description: Upgrade to 0.9.0, review its action error and stream changes, and remove deprecated settings.
+description: Upgrade across the stabilization releases, review action and stream changes, and remove deprecated settings.
 ---
 
 # {{ page.title }}
@@ -12,11 +12,22 @@ description: Upgrade to 0.9.0, review its action error and stream changes, and r
 
 After reading this guide, you will know:
 
-* How to upgrade your application to 0.9.0.
+* How to upgrade your application to {{ site.version }}.
 * Which endpoint, stream, and browser behavior changes need review.
 * Which deprecated settings to remove before 1.0.
 
 ## Upgrade from 0.5.0
+
+The stabilization follow-up requires no new migration or runtime files. Its
+opt-in Support Desk example adds an enforced script CSP and nonce generation.
+Review that host example's policy before copying it into an application with
+an existing CSP. The base installer and public gem API stay unchanged.
+
+The maintainer rehearsal verifies 0.1.0 to the candidate and back against one
+database. A rollback host must accept both the empty continuation arguments
+sent by 0.1 and the validated metadata sent by 0.3 and later. Keep saved library
+fingerprints and canonical records; show HTML fallback for a mismatched library
+instead of rewriting or deleting the stored response.
 
 {% if site.docs_unreleased %}This channel follows `main`.
 {% unless site.released %}Version `{{ site.version }}` is an unpublished candidate.{% endunless %}
@@ -36,6 +47,14 @@ selected replay store, library files, authorization, and business constraints.
 The pinned runtime and default library exports are unchanged, so stored
 surfaces keep their library fingerprint. For an older host, first read the
 [0.5 migration guide](https://github.com/yorzi/openui-rails/blob/v0.5.0/docs/_reference/upgrading.md).
+
+## Update host dependencies
+
+Update your application's locked dependencies as well as this gem. The
+2026-10-28 qualification found a CSS sanitizer advisory in the development
+Rails stack's Crass 1.0.7. `bundle update crass` selects the patched 1.0.8 or
+later. See the [upstream advisory](https://github.com/rgrove/crass/security/advisories/GHSA-pq4g-8rxf-4g29)
+and audit your own lockfile. The gem does not own your application's lockfile.
 
 ## Remove deprecated settings
 

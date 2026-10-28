@@ -57,6 +57,29 @@ Self-hosting is the default. Keep exact runtime pins and integrity hashes for Ja
 
 The bridge adds no inline scripts. Your script policy must permit the runtime you serve. The upstream renderer uses inline styles and inserts a loading `<style>` element, so validate your `style-src` policy against the actual bundle. Script integrity alone does not establish strict-CSP compatibility.
 
+The Support Desk reference verifies an enforced `script-src 'self'` policy with
+per-request nonces for Rails importmap tags. It does not allow `unsafe-eval` or
+untrusted inline scripts. Include `csp_meta_tag` in the layout when using Turbo.
+Its nonce generator applies only when you explicitly load the reference host.
+Existing applications must retain their own policy and nonce configuration.
+
+The reference permits `style-src 'self' 'unsafe-inline'` because the pinned
+renderer requires inline styles. This is a tested script policy, not a claim
+that the runtime works under an inline-style ban. It covers the reference's
+forms and actions; qualify charts, images, external URLs, and other components
+against your application's policy separately.
+
+## Verify keyboard access and fallback
+
+Give each surface a meaningful `label:` and keep recovery controls outside the
+renderer. The reference tests accessible form names, Tab navigation, Enter
+activation, visible error and status regions, and 390px layout. A blocked runtime
+still leaves native reload and recovery controls reachable.
+
+These checks do not establish complete WCAG conformance or screen-reader
+announcements. Review your generated components and content with your target
+assistive technology. Model output does not replace that application review.
+
 ## Next Steps
 
 * [Server Actions]({% link _core_features/actions.md %}) - register and authorize each callable operation.

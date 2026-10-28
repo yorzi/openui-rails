@@ -1,0 +1,84 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Independent public-API consumer; intentionally does not load the packaged reference.
+require "bundler/setup"
+require "rubygems/package"
+require "tmpdir"
+require "fileutils"
+require "open3"
+require "optparse"
+
+options = {}
+OptionParser.new do |parser|
+  parser.banner = "Usage: bin/check-host --gem FILE --runtime DIR [--upgrade-from GEM] [--source FILE]"
+  parser.on("--gem FILE", "Candidate artifact") { |value| options[:gem] = File.expand_path(value) }
+  parser.on("--runtime DIR", "Already fetched pinned browser assets") { |value| options[:runtime] = File.expand_path(value) }
+  parser.on("--upgrade-from GEM", "Rehearse old, candidate, and old again against one database") { |value| options[:from] = File.expand_path(value) }
+  parser.on("--source FILE", "Render synthetic model output instead of the recorded source") { |value| options[:source] = File.expand_path(value) }
+end.parse!
+abort "Provide --gem and --runtime" unless options[:gem] && options[:runtime] && ARGV.empty?
+root = File.expand_path("..", __dir__)
+artifacts = File.join(root, "tmp/browser", "#{Time.now.utc.strftime('%Y%m%dT%H%M%S')}-#{Process.pid}-host")
+FileUtils.mkdir_p(artifacts)
+gem_path = (Gem.loaded_specs.values.map { |spec| File.dirname(File.dirname(spec.full_gem_path)) } + Gem.path).uniq.join(File::PATH_SEPARATOR)
+
+def run!(*command, directory:, environment: {})
+  output, error, status = Open3.capture3(environment, *command, chdir: directory)
+  abort "Host check failed:\n#{output}\n#{error}" unless status.success?
+  puts output
+end
+
+Dir.mktmpdir("openui-public-host-") do |temporary|
+  packages = { candidate: options[:gem] }
+  packages[:previous] = options[:from] if options[:from]
+  packages.each do |name, archive|
+    package = Gem::Package.new(archive)
+    abort "Expected openui-rails artifact" unless package.spec.name == "openui-rails"
+    destination = File.join(temporary, name.to_s)
+    package.extract_files(destination)
+    File.write(File.join(destination, "openui-rails.gemspec"), package.spec.to_ruby)
+    packages[name] = destination
+  end
+  host = File.join(temporary, "host")
+  run!("bundle", "exec", "rails", "new", host, "--minimal", "--skip-bundle", "--skip-git", directory: temporary)
+  FileUtils.cp(File.join(root, "test/qualification/host_setup.rb"), File.join(host, "host_setup.rb"))
+  FileUtils.cp(File.join(root, "test/qualification/host_browser.rb"), File.join(host, "host_browser.rb"))
+  library = File.join(host, "config/openui")
+  FileUtils.mkdir_p(library)
+  # Validate assets using the candidate's public doctor when the host boots.
+  FileUtils.mkdir_p(File.join(host, "public/openui"))
+  FileUtils.cp(Dir[File.join(options[:runtime], "openui-browser-bundle-*")], File.join(host, "public/openui"))
+  # Prepare library files through the public task before booting a pre-task gem.
+  stages = options[:from] ? [ :candidate, :previous, :candidate, :previous ] : [ :candidate ]
+  stages.each_with_index do |stage, index|
+    artifact = packages.fetch(stage)
+    File.write(File.join(host, "Gemfile"), <<~GEMS)
+      source "https://rubygems.org"
+      gem "rails", "#{Gem.loaded_specs.fetch('rails').version}"
+      gem "openui-rails", path: #{artifact.inspect}
+      gem "propshaft"
+      gem "sqlite3"
+      gem "puma"
+      gem "importmap-rails"
+      gem "stimulus-rails"
+      gem "capybara"
+      gem "selenium-webdriver"
+      #{'gem "json", "< 3"' if Gem.loaded_specs.fetch("rails").version < Gem::Version.new("8.1")}
+    GEMS
+    environment = { "BUNDLE_GEMFILE" => File.join(host, "Gemfile"), "GEM_PATH" => gem_path,
+      "RAILS_ENV" => "test", "DATABASE_URL" => "sqlite3:#{host}/storage/qualification.sqlite3",
+      "QUALIFICATION_ARTIFACT" => artifact, "QUALIFICATION_SOURCE" => options[:source],
+      "QUALIFICATION_STAGE" => (options[:from] ? index - 1 : index).to_s, "QUALIFICATION_CANDIDATE" => (stage == :candidate).to_s,
+      "OPENUI_BROWSER_ARTIFACTS" => artifacts, "SE_CACHE_PATH" => File.join(root, "tmp/selenium"), "SE_AVOID_STATS" => "true" }
+    Bundler.with_unbundled_env do
+      run!("bundle", "install", "--local", directory: host, environment: environment)
+      run!("bundle", "exec", "ruby", "host_setup.rb", directory: host, environment: environment)
+      run!("bundle", "exec", "ruby", "bin/rails", "openui:library:prepare", directory: host, environment: environment) if index.zero?
+      run!("bundle", "exec", "ruby", "bin/rails", "openui:doctor", directory: host, environment: environment) if stage == :candidate
+      next if options[:from] && index.zero?
+      run!("bundle", "exec", "ruby", "host_browser.rb", directory: host, environment: environment)
+    end
+  end
+  puts "Public host #{options[:from] ? 'upgrade and rollback' : 'integration'} passed; screenshots: #{artifacts}"
+end

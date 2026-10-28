@@ -28,6 +28,7 @@ Dir.chdir(File.expand_path("..", __dir__)) do
   run!("bundle", "exec", "bin/rails", "db:test:prepare")
   run!("bundle", "exec", "bin/rails", "test")
   run!("bundle", "exec", "ruby", "-Itest", "test/compatibility/ruby_llm_smoke.rb")
+  run!("bundle", "exec", "ruby", "test/qualification/live_smoke.rb")
   run!(RbConfig.ruby, "bin/check-reference")
   FileUtils.mkdir_p("tmp/package")
   artifact = "tmp/package/openui-rails-#{OpenUI::Rails::VERSION}.gem"
@@ -37,5 +38,6 @@ Dir.chdir(File.expand_path("..", __dir__)) do
   run!(RbConfig.ruby, "bin/check-browser", "--runtime", options[:runtime]) if options[:runtime]
   run!("bundle", "exec", "ruby", "bin/smoke-package", artifact, "--runtime", options[:runtime]) if options[:runtime]
   run!(RbConfig.ruby, "bin/check-reference", "--gem", artifact, "--runtime", options[:runtime]) if options[:runtime]
+  run!(RbConfig.ruby, "bin/check-host", "--gem", artifact, "--runtime", options[:runtime]) if options[:runtime]
   run!("docs/bin/build.sh") if options[:docs]
 end

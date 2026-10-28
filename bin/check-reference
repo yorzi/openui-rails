@@ -15,9 +15,11 @@ OptionParser.new do |parser|
   parser.on("--runtime DIR", "Run the real-browser workflow with verified local assets") { |v| options[:runtime] = File.expand_path(v) }
   parser.on("--gem FILE", "Generate a host that consumes only this built gem") { |v| options[:gem] = File.expand_path(v) }
   parser.on("--host DIR", "Keep a generated host here for inspection; never starts a persistent server") { |v| options[:host] = File.expand_path(v) }
+  parser.on("--prepare-only", "Prepare a retained host without running browser tests") { options[:prepare_only] = true }
 end.parse!
 abort "Unexpected arguments" unless ARGV.empty?
 abort "--host requires --gem" if options[:host] && !options[:gem]
+abort "--prepare-only requires --host and --gem" if options[:prepare_only] && !(options[:host] && options[:gem])
 root = File.expand_path("..", __dir__)
 require_relative "../lib/openui/rails"
 if options[:runtime]
@@ -112,7 +114,7 @@ Dir.mktmpdir("openui-reference-") do |temporary|
     else
       run!("bundle", "exec", "ruby", File.join(root, "bin/rails"), "test", "test/reference/host_test.rb", directory: root, environment: environment)
     end
-    if options[:runtime]
+    if options[:runtime] && !options[:prepare_only]
       puts "Reference browser artifacts: #{artifacts}"
       selection = options[:name] ? [ "--name", options[:name] ] : []
       run!("bundle", "exec", "ruby", File.join(root, "test/reference/browser_flow.rb"), *selection, directory: host, environment: environment)

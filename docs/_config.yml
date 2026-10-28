@@ -111,8 +111,8 @@ code_language: ruby
 # Values that change between releases. Pages read them as {{ site.version }}
 # and {{ site.examples.NAME }}, so one edit here updates every page. Set
 # `released: true` and the new version in the commit you tag for a release.
-released: true
-version: "0.9.0"
+released: false
+version: "0.9.1"
 compatibility:
   browser_runtime: "0.2.1"
   cli: "0.6.0"

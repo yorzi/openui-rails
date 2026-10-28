@@ -15,9 +15,14 @@ From the repository:
 
 ```sh
 mkdir -p tmp/package
-bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.9.0.gem
-bin/check-reference --gem tmp/package/openui-rails-0.9.0.gem --runtime tmp/real-runtime
+bundle exec gem build openui-rails.gemspec --output tmp/package/openui-rails-0.9.1.gem
+bin/check-reference --gem tmp/package/openui-rails-0.9.1.gem --runtime tmp/real-runtime
 ```
+
+For an interactive disposable demo, use `bin/demo --runtime tmp/real-runtime`.
+It starts a foreground server on `127.0.0.1:3000` and removes the new host and
+database when you stop it with Ctrl-C. No provider call is made. Its script CSP
+uses importmap nonces; inline styles remain enabled for the pinned renderer.
 
 Fetch the runtime first. See the [complete guide](https://openui-rails.wangyaodi.com/reference-workflow/)
 for setup, retained-host review, failure checks, and evidence limits. The

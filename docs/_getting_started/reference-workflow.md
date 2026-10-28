@@ -41,13 +41,27 @@ same reference code loaded by `test/dummy`. Add `--runtime tmp/real-runtime` to
 run the real browser there too. Database-backed runs use separate temporary
 databases and run sequentially.
 
+## Run a disposable demo
+
+From a development checkout, fetch the runtime with the command above, then run:
+
+```sh
+bin/demo --runtime tmp/real-runtime --port 3000
+```
+
+Open `http://127.0.0.1:3000/support`. This command builds the current gem and
+prepares a new isolated host without running the browser suite. Its foreground
+server binds only `127.0.0.1`. Ctrl-C stops the server and removes its temporary
+database and host. It uses synthetic accounts and recorded generation and makes
+no provider call. The `bin/demo` command belongs to this checkout, not the gem.
+
 ## Inspect a retained host
 
 Choose a new directory whose parent exists:
 
 ```sh
 bin/check-reference --gem tmp/package/openui-rails-{{ site.version }}.gem \
-  --runtime tmp/real-runtime --host tmp/support-desk
+  --runtime tmp/real-runtime --host tmp/support-desk --prepare-only
 cd tmp/support-desk
 RAILS_ENV=test DATABASE_URL="sqlite3:$PWD/storage/reference-test.sqlite3" \
   bin/rails server --binding 127.0.0.1 --port 3000

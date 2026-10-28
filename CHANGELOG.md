@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `bin/demo` prepares a disposable Support Desk host, binds its foreground
+  server to loopback, and removes the host when the server stops.
+- Independent public-API host checks, an optional old-gem upgrade and rollback
+  rehearsal, and an explicitly authorized single-request live qualification.
+  Live failure and retry limits are tested offline and never run in CI.
+- Browser assertions for the reference's enforced script CSP and complete
+  keyboard navigation through its generated form and mutation.
+
+### Changed
+
+- The opt-in Support Desk example uses nonce-authorized scripts and a
+  self-hosted content policy. Inline styles remain necessary for the pinned
+  renderer. No gem API, runtime pin, database migration, or dependency changes.
+
 ## [0.9.0] - 2026-10-21
 
 ### Added

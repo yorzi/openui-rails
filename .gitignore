@@ -4,6 +4,7 @@
 /tmp/
 /pkg/
 /node_modules/
+/drafts/
 
 # Dummy app runtime state
 /test/dummy/log/
