@@ -29,7 +29,7 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
   # Compatibility probes only; neither is a runtime dependency of the gem.
-  gem "ruby_llm", "2.1.1", require: false
+  gem "ruby_llm", "2.2.0", require: false
   gem "webmock", "~> 3.0", require: false
 end
 
